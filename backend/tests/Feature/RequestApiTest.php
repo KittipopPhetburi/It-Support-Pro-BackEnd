@@ -18,6 +18,8 @@ class RequestApiTest extends TestCase
 
     public function test_can_create_asset_request()
     {
+        $this->withoutExceptionHandling();
+
         // Setup Data
         $user = User::factory()->create();
         $category = AssetCategory::create(['name' => 'Laptop', 'code' => 'LPT']);
@@ -47,6 +49,8 @@ class RequestApiTest extends TestCase
 
     public function test_can_create_other_request()
     {
+        $this->withoutExceptionHandling();
+
         // Setup Data
         $user = User::factory()->create();
         $category = OtherRequestCategory::create(['name' => 'General']);
