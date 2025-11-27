@@ -44,7 +44,7 @@ class AuthController extends Controller
             ], 401);
         }
 
-        $user = User::where('username', $request['username'])->firstOrFail();
+        $user = User::with(['role', 'branch', 'department'])->where('username', $request['username'])->firstOrFail();
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -57,7 +57,7 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return $request->user();
+        return $request->user()->load(['role', 'branch', 'department']);
     }
 
     public function logout(Request $request)
