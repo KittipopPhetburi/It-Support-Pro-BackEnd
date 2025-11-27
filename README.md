@@ -14,49 +14,39 @@ cp .env.example .env
 ```
 
 ### 2. ติดตั้ง Dependencies
-ต้องลง Library ต่างๆ ของ PHP ก่อน (รันใน Terminal):
 ```bash
-# ถ้ามี PHP ในเครื่อง
 composer install
-
-# หรือถ้าไม่มี PHP ให้ใช้ Docker ช่วยลง (ถ้าลง Docker ไว้แล้ว)
-docker run --rm \
-    -u "$(id -u):$(id -g)" \
-    -v "$(pwd):/var/www/html" \
-    -w /var/www/html \
-    laravelsail/php82-composer:latest \
-    composer install --ignore-platform-reqs
 ```
 
-### 3. รันระบบด้วย Docker (แนะนำ 🏆)
-วิธีนี้ง่ายสุด ไม่ต้องลง PHP/MySQL ในเครื่อง
-
-1.  **Start Server**:
+### 3. ตั้งค่าโปรเจกต์ (ทำครั้งแรก)
+1.  **สร้าง Key**:
     ```bash
-    docker-compose up -d
+    php artisan key:generate
     ```
-    *(รอสักพักจนกว่าจะนิ่ง)*
-
-2.  **Generate Key** (ทำครั้งแรกครั้งเดียว):
+2.  **ตั้งค่า Database**:
+    *   เปิด XAMPP -> Start MySQL
+    *   สร้าง Database ชื่อ `icdm`
+3.  **สร้างตาราง**:
     ```bash
-    docker-compose exec app php artisan key:generate
+    php artisan migrate --seed
     ```
 
-3.  **สร้างตารางใน Database**:
-    ```bash
-    docker-compose exec app php artisan migrate --seed
-    ```
+### 4. รัน Server
+```bash
+php artisan serve
+```
+เว็บจะอยู่ที่: `http://127.0.0.1:8000`
 
 ---
 
 ## 🌐 การใช้งาน
 
-*   **Web API**: `http://localhost`
-*   **phpMyAdmin**: `http://localhost:8080` (User: `root`, Pass: `password`)
+*   **Web API**: `http://127.0.0.1:8000`
+*   **Database**: จัดการผ่านเครื่องมือ Local ของคุณ (เช่น phpMyAdmin ของ XAMPP)
 
 ## 🧪 การทดสอบ (Testing)
 
 รัน Unit/Feature Test:
 ```bash
-docker-compose exec app php artisan test
+php artisan test
 ```
