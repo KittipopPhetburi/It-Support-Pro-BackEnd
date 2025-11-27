@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Models;
 
@@ -14,15 +14,24 @@ class KbArticle extends Model
         'code',
         'title',
         'content',
+        'author',
+        'tags',
         'is_published',
         'created_by_id',
         'updated_by_id',
         'published_at',
+        'views',
+        'helpful',
+        'not_helpful',
     ];
 
     protected $casts = [
         'is_published' => 'boolean',
         'published_at' => 'datetime',
+        'tags' => 'array',
+        'views' => 'integer',
+        'helpful' => 'integer',
+        'not_helpful' => 'integer',
     ];
 
     public function category()

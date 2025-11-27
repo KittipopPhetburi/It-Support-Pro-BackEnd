@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Models;
 
@@ -12,9 +12,11 @@ class Asset extends Model
     protected $fillable = [
         'code',
         'name',
+        'type',
         'asset_category_id',
         'asset_status_id',
         'serial_number',
+        'inventory_number',
         'model',
         'brand',
         'specification',
@@ -24,6 +26,7 @@ class Asset extends Model
         'vendor_id',
         'branch_id',
         'department_id',
+        'location',
     ];
 
     protected $casts = [
@@ -75,5 +78,10 @@ class Asset extends Model
     public function maintenanceContracts()
     {
         return $this->belongsToMany(MaintenanceContract::class, 'asset_contracts');
+    }
+
+    public function incidents()
+    {
+        return $this->hasMany(Incident::class);
     }
 }

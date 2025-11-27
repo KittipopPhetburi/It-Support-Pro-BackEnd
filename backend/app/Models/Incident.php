@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Models;
 
@@ -15,8 +15,10 @@ class Incident extends Model
         'description',
         'contact_name',
         'contact_phone',
+        'contact_method',
         'service_id',
         'incident_category_id',
+        'subcategory',
         'priority_id',
         'status_id',
         'requester_id',
@@ -25,6 +27,32 @@ class Incident extends Model
         'department_id',
         'source',
         'location_text',
+        'location',
+        // Asset info
+        'asset_id',
+        'asset_name',
+        'asset_brand',
+        'asset_model',
+        'asset_serial_number',
+        'asset_inventory_number',
+        'is_custom_asset',
+        'equipment_type',
+        'operating_system',
+        // Repair info
+        'start_repair_date',
+        'completion_date',
+        'repair_details',
+        'repair_status',
+        'replacement_equipment',
+        'has_additional_cost',
+        'additional_cost',
+        'technician_signature',
+        'customer_signature',
+        // Satisfaction info
+        'satisfaction_rating',
+        'satisfaction_comment',
+        'satisfaction_date',
+        // Dates
         'opened_at',
         'first_response_at',
         'closed_at',
@@ -34,6 +62,13 @@ class Incident extends Model
         'opened_at' => 'datetime',
         'first_response_at' => 'datetime',
         'closed_at' => 'datetime',
+        'start_repair_date' => 'datetime',
+        'completion_date' => 'datetime',
+        'satisfaction_date' => 'datetime',
+        'is_custom_asset' => 'boolean',
+        'has_additional_cost' => 'boolean',
+        'additional_cost' => 'decimal:2',
+        'satisfaction_rating' => 'integer',
     ];
 
     public function service()
@@ -74,6 +109,11 @@ class Incident extends Model
     public function department()
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function asset()
+    {
+        return $this->belongsTo(Asset::class);
     }
 
     public function logs()
