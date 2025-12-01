@@ -10,19 +10,13 @@ class Holiday extends Model
     use HasFactory;
 
     protected $fillable = [
-        'business_hours_profile_id',
         'name',
-        'start_date',
-        'end_date',
+        'date',
+        'recurring',
     ];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
+        'date' => 'date',
+        'recurring' => 'boolean',
     ];
-
-    public function profile()
-    {
-        return $this->belongsTo(BusinessHoursProfile::class, 'business_hours_profile_id');
-    }
 }

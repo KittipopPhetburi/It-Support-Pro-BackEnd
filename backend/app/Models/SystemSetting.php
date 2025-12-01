@@ -10,6 +10,7 @@ class SystemSetting extends Model
     use HasFactory;
 
     protected $fillable = [
+        'category',
         'key',
         'value',
         'description',

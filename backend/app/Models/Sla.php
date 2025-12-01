@@ -5,20 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class SubContractor extends Model
+class Sla extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'name',
-        'company',
-        'email',
-        'phone',
-        'specialization',
-        'status',
+        'priority',
+        'response_time',
+        'resolution_time',
     ];
 
     protected $casts = [
-        'specialization' => 'array',
+        'response_time' => 'integer',
+        'resolution_time' => 'integer',
     ];
 }

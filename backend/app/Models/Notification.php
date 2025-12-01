@@ -5,20 +5,23 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class SubContractor extends Model
+class Notification extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'company',
-        'email',
-        'phone',
-        'specialization',
-        'status',
+        'user_id',
+        'type',
+        'message',
+        'read',
     ];
 
     protected $casts = [
-        'specialization' => 'array',
+        'read' => 'boolean',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

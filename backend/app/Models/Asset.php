@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 namespace App\Models;
 
@@ -10,44 +10,31 @@ class Asset extends Model
     use HasFactory;
 
     protected $fillable = [
-        'code',
         'name',
         'type',
-        'asset_category_id',
-        'asset_status_id',
+        'category',
+        'brand',
+        'model',
         'serial_number',
         'inventory_number',
-        'model',
-        'brand',
-        'specification',
+        'status',
+        'assigned_to_id',
+        'location',
         'purchase_date',
-        'purchase_price',
-        'warranty_expire_date',
-        'vendor_id',
+        'warranty_expiry',
         'branch_id',
         'department_id',
-        'location',
+        'organization',
     ];
 
     protected $casts = [
         'purchase_date' => 'date',
-        'warranty_expire_date' => 'date',
-        'purchase_price' => 'decimal:2',
+        'warranty_expiry' => 'date',
     ];
 
-    public function category()
+    public function assignedTo()
     {
-        return $this->belongsTo(AssetCategory::class, 'asset_category_id');
-    }
-
-    public function status()
-    {
-        return $this->belongsTo(AssetStatus::class, 'asset_status_id');
-    }
-
-    public function vendor()
-    {
-        return $this->belongsTo(Vendor::class);
+        return $this->belongsTo(User::class, 'assigned_to_id');
     }
 
     public function branch()
@@ -58,26 +45,6 @@ class Asset extends Model
     public function department()
     {
         return $this->belongsTo(Department::class);
-    }
-
-    public function assignments()
-    {
-        return $this->hasMany(AssetAssignment::class);
-    }
-
-    public function logs()
-    {
-        return $this->hasMany(AssetLog::class);
-    }
-
-    public function attachments()
-    {
-        return $this->hasMany(AssetAttachment::class);
-    }
-
-    public function maintenanceContracts()
-    {
-        return $this->belongsToMany(MaintenanceContract::class, 'asset_contracts');
     }
 
     public function incidents()

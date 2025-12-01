@@ -5,20 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class SubContractor extends Model
+class BusinessHour extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'company',
-        'email',
-        'phone',
-        'specialization',
-        'status',
+        'day_of_week',
+        'start_time',
+        'end_time',
+        'is_working_day',
     ];
 
     protected $casts = [
-        'specialization' => 'array',
+        'is_working_day' => 'boolean',
     ];
 }

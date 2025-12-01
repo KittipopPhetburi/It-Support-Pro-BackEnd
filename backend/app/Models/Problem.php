@@ -10,28 +10,29 @@ class Problem extends Model
     use HasFactory;
 
     protected $fillable = [
-        'code',
         'title',
         'description',
+        'status',
+        'priority',
+        'assigned_to_id',
         'root_cause',
         'workaround',
-        'permanent_fix',
-        'status_id',
-        'owner_id',
+        'solution',
+        'resolved_at',
     ];
 
-    public function status()
-    {
-        return $this->belongsTo(ProblemStatus::class);
-    }
+    protected $casts = [
+        'resolved_at' => 'datetime',
+    ];
 
-    public function owner()
+    public function assignedTo()
     {
-        return $this->belongsTo(User::class, 'owner_id');
+        return $this->belongsTo(User::class, 'assigned_to_id');
     }
 
     public function incidents()
     {
-        return $this->belongsToMany(Incident::class, 'problem_incidents');
+        return $this->belongsToMany(Incident::class, 'problem_incident')
+                    ->withTimestamps();
     }
 }

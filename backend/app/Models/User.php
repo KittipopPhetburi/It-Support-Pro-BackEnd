@@ -2,63 +2,35 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-use Laravel\Sanctum\HasApiTokens;
-
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'username',
         'email',
         'password',
-        'role_id',
+        'role',
         'branch_id',
         'department_id',
-        'is_active',
+        'organization',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'is_active' => 'boolean',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime', // ถ้ามี
+    ];
 
-    public function role()
-    {
-        return $this->belongsTo(Role::class);
-    }
-
+    // ความสัมพันธ์กับโครงสร้างองค์กร
     public function branch()
     {
         return $this->belongsTo(Branch::class);
@@ -69,9 +41,15 @@ class User extends Authenticatable
         return $this->belongsTo(Department::class);
     }
 
+    // ความสัมพันธ์กับ Incident
     public function incidentsRequested()
     {
         return $this->hasMany(Incident::class, 'requester_id');
+    }
+
+    public function incidentsReported()
+    {
+        return $this->hasMany(Incident::class, 'reported_by_id');
     }
 
     public function incidentsAssigned()
@@ -79,48 +57,60 @@ class User extends Authenticatable
         return $this->hasMany(Incident::class, 'assignee_id');
     }
 
-    public function problemsOwned()
+    // Asset ที่มอบหมายให้ user นี้ใช้
+    public function assignedAssets()
     {
-        return $this->hasMany(Problem::class, 'owner_id');
+        return $this->hasMany(Asset::class, 'assigned_to_id');
     }
 
-    public function kbArticlesCreated()
+    // Problems ที่ assign ให้ user นี้
+    public function assignedProblems()
     {
-        return $this->hasMany(KbArticle::class, 'created_by_id');
+        return $this->hasMany(Problem::class, 'assigned_to_id');
     }
 
-    public function kbArticlesUpdated()
-    {
-        return $this->hasMany(KbArticle::class, 'updated_by_id');
-    }
-
-    public function assetAssignments()
-    {
-        return $this->hasMany(AssetAssignment::class);
-    }
-
-    public function assetRequestsRequested()
+    // Requests ต่าง ๆ
+    public function assetRequests()
     {
         return $this->hasMany(AssetRequest::class, 'requester_id');
     }
 
-    public function assetRequestsApproved()
-    {
-        return $this->hasMany(AssetRequest::class, 'approver_id');
-    }
-
-    public function otherRequestsRequested()
+    public function otherRequests()
     {
         return $this->hasMany(OtherRequest::class, 'requester_id');
     }
 
-    public function otherRequestsHandled()
+    public function serviceRequests()
     {
-        return $this->hasMany(OtherRequest::class, 'handler_id');
+        return $this->hasMany(ServiceRequest::class, 'requester_id');
     }
 
-    public function systemLogs()
+    // Activity Logs
+    public function activityLogs()
     {
-        return $this->hasMany(SystemLog::class);
+        return $this->hasMany(ActivityLog::class);
+    }
+
+    // Satisfaction Surveys ตอบโดย user นี้
+    public function satisfactionSurveys()
+    {
+        return $this->hasMany(SatisfactionSurvey::class, 'respondent_id');
+    }
+
+    // Knowledge Base
+    public function authoredArticles()
+    {
+        return $this->hasMany(KbArticle::class, 'author_id');
+    }
+
+    public function createdArticles()
+    {
+        return $this->hasMany(KbArticle::class, 'created_by_id');
+    }
+
+    // Notifications
+    public function notificationsCustom()
+    {
+        return $this->hasMany(Notification::class);
     }
 }

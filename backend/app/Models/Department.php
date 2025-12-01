@@ -10,10 +10,9 @@ class Department extends Model
     use HasFactory;
 
     protected $fillable = [
-        'branch_id',
-        'code',
         'name',
-        'description',
+        'branch_id',
+        'organization',
     ];
 
     public function branch()
@@ -24,5 +23,30 @@ class Department extends Model
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    public function assets()
+    {
+        return $this->hasMany(Asset::class);
+    }
+
+    public function incidents()
+    {
+        return $this->hasMany(Incident::class);
+    }
+
+    public function assetRequests()
+    {
+        return $this->hasMany(AssetRequest::class);
+    }
+
+    public function otherRequests()
+    {
+        return $this->hasMany(OtherRequest::class);
+    }
+
+    public function serviceRequests()
+    {
+        return $this->hasMany(ServiceRequest::class);
     }
 }
