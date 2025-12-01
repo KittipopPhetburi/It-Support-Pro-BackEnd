@@ -10,9 +10,13 @@ class Branch extends Model
     use HasFactory;
 
     protected $fillable = [
+        'code',
         'name',
         'address',
+        'province',
+        'phone',
         'organization',
+        'status',
     ];
 
     // ความสัมพันธ์

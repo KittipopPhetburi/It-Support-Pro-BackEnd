@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class UserController extends BaseCrudController
 {
@@ -11,13 +12,15 @@ class UserController extends BaseCrudController
 
     protected array $validationRules = [
         'name' => 'required|string|max:255',
-        'username' => 'required|string|max:255',
-        'email' => 'required|email|max:255',
+        'username' => 'required|string|max:255|unique:users,username',
+        'email' => 'required|email|max:255|unique:users,email',
         'password' => 'required|string|min:6',
         'role' => 'required|in:Admin,Technician,Helpdesk,Purchase,User',
         'branch_id' => 'nullable|integer|exists:branches,id',
         'department_id' => 'nullable|integer|exists:departments,id',
-        'organization' => 'nullable|string|max:255',
+        'organization' => 'sometimes|nullable|string|max:255',
+        'phone' => 'sometimes|nullable|string|max:50',
+        'status' => 'sometimes|nullable|string|in:Active,Inactive',
     ];
 
     protected array $updateValidationRules = [
@@ -29,15 +32,36 @@ class UserController extends BaseCrudController
         'branch_id' => 'sometimes|nullable|integer|exists:branches,id',
         'department_id' => 'sometimes|nullable|integer|exists:departments,id',
         'organization' => 'sometimes|nullable|string|max:255',
+        'phone' => 'sometimes|nullable|string|max:50',
+        'status' => 'sometimes|nullable|string|in:Active,Inactive',
     ];
 
-    // override store/update เพื่อแฮชรหัสผ่าน
+    public function index(Request $request)
+    {
+        $users = User::with(['branch', 'department'])->get();
+        return response()->json($users);
+    }
+
+    public function show($id)
+    {
+        $user = User::with(['branch', 'department'])->findOrFail($id);
+        return response()->json($user);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate($this->validationRules);
-        $data['password'] = bcrypt($data['password']);
+
+        if (!empty($data['password'])) {
+            $data['password'] = bcrypt($data['password']);
+        }
+
+        if (!isset($data['status'])) {
+            $data['status'] = 'Active';
+        }
 
         $user = User::create($data);
+        $user->load(['branch', 'department']);
 
         return response()->json($user, 201);
     }
@@ -46,16 +70,24 @@ class UserController extends BaseCrudController
     {
         $user = User::findOrFail($id);
 
-        $data = $request->validate($this->updateValidationRules);
+        $rules = $this->updateValidationRules;
 
-        if (!empty($data['password'])) {
-            $data['password'] = bcrypt($data['password']);
-        } else {
-            unset($data['password']);
+        $rules['username'] = Rule::unique('users', 'username')->ignore($user->id);
+        $rules['email'] = Rule::unique('users', 'email')->ignore($user->id);
+
+        $data = $request->validate($rules);
+
+        if (array_key_exists('password', $data)) {
+            if (!empty($data['password'])) {
+                $data['password'] = bcrypt($data['password']);
+            } else {
+                unset($data['password']);
+            }
         }
 
         $user->fill($data);
         $user->save();
+        $user->load(['branch', 'department']);
 
         return response()->json($user);
     }

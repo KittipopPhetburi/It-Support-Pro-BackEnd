@@ -11,7 +11,10 @@ class Department extends Model
 
     protected $fillable = [
         'name',
+        'code',
         'branch_id',
+        'description',
+        'status',
         'organization',
     ];
 
@@ -23,30 +26,5 @@ class Department extends Model
     public function users()
     {
         return $this->hasMany(User::class);
-    }
-
-    public function assets()
-    {
-        return $this->hasMany(Asset::class);
-    }
-
-    public function incidents()
-    {
-        return $this->hasMany(Incident::class);
-    }
-
-    public function assetRequests()
-    {
-        return $this->hasMany(AssetRequest::class);
-    }
-
-    public function otherRequests()
-    {
-        return $this->hasMany(OtherRequest::class);
-    }
-
-    public function serviceRequests()
-    {
-        return $this->hasMany(ServiceRequest::class);
     }
 }
