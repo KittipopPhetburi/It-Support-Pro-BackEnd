@@ -91,4 +91,14 @@ class UserController extends BaseCrudController
 
         return response()->json($user);
     }
+
+    public function getTechnicians()
+    {
+        $technicians = User::where('role', 'Technician')  // 👈 filter ตาม role
+            ->select('id', 'name')   // เอาเฉพาะที่ต้องใช้
+            ->orderBy('name')
+            ->get();
+
+        return response()->json($technicians);
+    }
 }

@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\{
 */
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/technicians', [UserController::class, 'getTechnicians']);
 
 /*
 |--------------------------------------------------------------------------

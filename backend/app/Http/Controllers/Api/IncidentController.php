@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Incident;
+use Illuminate\Http\Request;
 
 class IncidentController extends BaseCrudController
 {
@@ -56,4 +57,85 @@ class IncidentController extends BaseCrudController
         'satisfaction_comment' => 'nullable|string',
         'satisfaction_date' => 'nullable|date',
     ];
+
+    /**
+     * Map frontend field names to backend field names
+     */
+    protected function mapRequestData(Request $request): array
+    {
+        $data = $request->all();
+        
+        // Map assigned_to to assignee_id (frontend sends assigned_to, backend expects assignee_id)
+        if (isset($data['assigned_to']) && !isset($data['assignee_id'])) {
+            $data['assignee_id'] = $data['assigned_to'];
+        }
+        
+        // Remove fields that are not in the database
+        unset($data['assigned_to']);
+        unset($data['assigned_to_name']);
+        unset($data['incident_category_id']);
+        unset($data['priority_id']);
+        unset($data['status_id']);
+        unset($data['requester']);
+        unset($data['reported_by']);
+        unset($data['branch']);
+        unset($data['department']);
+        
+        return $data;
+    }
+
+    public function store(Request $request)
+    {
+        // Map frontend field names to backend
+        $mappedData = $this->mapRequestData($request);
+        $request->merge($mappedData);
+        
+        $data = $request->validate($this->validationRules);
+        
+        $model = Incident::create($data);
+        
+        // Load the assignee relationship to return the technician name
+        $model->load('assignee');
+
+        return response()->json($model, 201);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $model = Incident::findOrFail($id);
+        
+        // Map frontend field names to backend
+        $mappedData = $this->mapRequestData($request);
+        $request->merge($mappedData);
+        
+        $rules = $this->updateValidationRules ?: $this->validationRules;
+        $data = $request->validate($rules);
+
+        $model->fill($data);
+        $model->save();
+        
+        // Load the assignee relationship to return the technician name
+        $model->load('assignee');
+
+        return response()->json($model);
+    }
+
+    public function show($id)
+    {
+        $model = Incident::with('assignee')->findOrFail($id);
+
+        return response()->json($model);
+    }
+
+    public function index(Request $request)
+    {
+        $query = Incident::with('assignee');
+
+        // รองรับ pagination เบื้องต้น ?per_page=20
+        if ($request->has('per_page')) {
+            return $query->paginate((int) $request->get('per_page', 15));
+        }
+
+        return $query->get();
+    }
 }
