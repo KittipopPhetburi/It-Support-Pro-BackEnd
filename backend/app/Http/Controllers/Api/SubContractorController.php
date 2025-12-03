@@ -13,8 +13,11 @@ class SubContractorController extends BaseCrudController
         'company' => 'required|string|max:255',
         'email' => 'nullable|email|max:255',
         'phone' => 'nullable|string|max:50',
-        'specialization' => 'nullable|array',
-        'specialization.*' => 'string',
-        'status' => 'required|in:Active,Inactive',
+        'specialty' => 'nullable|string|max:255',
+        'province' => 'nullable|string|max:255',
+        'bank_name' => 'nullable|string|max:255',
+        'bank_account_name' => 'nullable|string|max:255',
+        'bank_account_number' => 'nullable|string|max:50',
+        'status' => 'sometimes|in:Active,Inactive',
     ];
 }
