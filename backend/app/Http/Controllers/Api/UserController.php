@@ -38,7 +38,19 @@ class UserController extends BaseCrudController
 
     public function index(Request $request)
     {
-        $users = User::with(['branch', 'department'])->get();
+        $query = User::with(['branch', 'department']);
+        
+        // Filter by role if provided
+        if ($request->has('role')) {
+            $query->where('role', $request->role);
+        }
+        
+        // Filter by status if provided
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $users = $query->orderBy('name')->get();
         return response()->json($users);
     }
 
@@ -94,8 +106,8 @@ class UserController extends BaseCrudController
 
     public function getTechnicians()
     {
-        $technicians = User::where('role', 'Technician')  // 👈 filter ตาม role
-            ->select('id', 'name')   // เอาเฉพาะที่ต้องใช้
+        $technicians = User::where('role', 'Technician')
+            ->select('id', 'name')
             ->orderBy('name')
             ->get();
 

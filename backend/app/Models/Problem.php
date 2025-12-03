@@ -32,7 +32,7 @@ class Problem extends Model
 
     public function incidents()
     {
-        return $this->belongsToMany(Incident::class, 'problem_incident')
+        return $this->belongsToMany(Incident::class, 'incident_problem')
                     ->withTimestamps();
     }
 }
