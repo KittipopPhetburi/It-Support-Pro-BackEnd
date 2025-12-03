@@ -16,6 +16,7 @@ class ServiceCatalogItem extends Model
         'sla',
         'cost',
         'icon',
+        'estimated_time',
     ];
 
     protected $casts = [

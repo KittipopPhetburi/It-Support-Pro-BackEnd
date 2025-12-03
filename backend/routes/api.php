@@ -95,6 +95,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Service Requests
     Route::get('/service-requests/statistics', [ServiceRequestController::class, 'statistics']);
     Route::get('/service-requests/my', [ServiceRequestController::class, 'myRequests']);
+    Route::post('/service-requests/{serviceRequest}/approve', [ServiceRequestController::class, 'approve']);
+    Route::post('/service-requests/{serviceRequest}/reject', [ServiceRequestController::class, 'reject']);
+    Route::post('/service-requests/{serviceRequest}/start-progress', [ServiceRequestController::class, 'startProgress']);
+    Route::post('/service-requests/{serviceRequest}/complete', [ServiceRequestController::class, 'complete']);
     Route::apiResource('service-requests', ServiceRequestController::class);
 
     // SLAs

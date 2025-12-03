@@ -12,8 +12,13 @@ class ServiceRequest extends Model
     protected $fillable = [
         'service_id',
         'service_name',
+        'description',
         'requester_id',
+        'requested_by',
         'status',
+        'approved_by_id',
+        'approved_at',
+        'rejected_reason',
         'request_date',
         'completion_date',
         'branch_id',
@@ -24,6 +29,7 @@ class ServiceRequest extends Model
     protected $casts = [
         'request_date' => 'datetime',
         'completion_date' => 'datetime',
+        'approved_at' => 'datetime',
     ];
 
     public function service()
@@ -44,5 +50,10 @@ class ServiceRequest extends Model
     public function department()
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by_id');
     }
 }

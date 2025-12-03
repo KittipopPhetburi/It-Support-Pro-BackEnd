@@ -15,5 +15,6 @@ class ServiceCatalogItemController extends BaseCrudController
         'sla' => 'nullable|string|max:255',
         'cost' => 'nullable|numeric',
         'icon' => 'nullable|string|max:255',
+        'estimated_time' => 'nullable|string|max:255',
     ];
 }
