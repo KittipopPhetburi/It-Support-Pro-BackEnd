@@ -11,7 +11,22 @@ return new class extends Migration
      */
     public function up(): void
     {
-        //
+        Schema::create('holidays', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->date('date');
+            $table->date('end_date')->nullable(); // สำหรับวันหยุดที่มีหลายวัน
+            $table->string('type')->default('public'); // public, company, personal, other
+            $table->text('description')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable(); // สำหรับวันลาส่วนบุคคล
+            $table->boolean('is_recurring')->default(false);
+            $table->timestamps();
+            
+            // Index สำหรับการค้นหา
+            $table->index('date');
+            $table->index('type');
+            $table->index('user_id');
+        });
     }
 
     /**
@@ -19,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        Schema::dropIfExists('holidays');
     }
 };

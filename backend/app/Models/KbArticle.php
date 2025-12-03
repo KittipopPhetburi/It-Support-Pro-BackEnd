@@ -16,8 +16,8 @@ class KbArticle extends Model
         'content',
         'category',
         'tags',
-        'author_id',
-        'created_by_id',
+        'author',
+        'created_by',
         'views',
         'helpful',
         'not_helpful',
@@ -29,14 +29,4 @@ class KbArticle extends Model
         'helpful' => 'integer',
         'not_helpful' => 'integer',
     ];
-
-    public function author()
-    {
-        return $this->belongsTo(User::class, 'author_id');
-    }
-
-    public function createdBy()
-    {
-        return $this->belongsTo(User::class, 'created_by_id');
-    }
 }

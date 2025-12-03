@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\{
     SubContractorController,
     SystemSettingController,
     SlaController,
+    SlaCalculatorController,
     NotificationController,
     DashboardController
 };
@@ -114,12 +115,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/slas/priority/{priority}', [SlaController::class, 'getByPriority']);
     Route::apiResource('slas', SlaController::class);
 
+    // SLA Calculator (Business Hours based)
+    Route::get('/sla-calculator/incident/{incidentId}', [SlaCalculatorController::class, 'calculateForIncident']);
+    Route::post('/sla-calculator/calculate', [SlaCalculatorController::class, 'calculate']);
+    Route::post('/sla-calculator/business-minutes', [SlaCalculatorController::class, 'calculateBusinessMinutes']);
+    Route::post('/sla-calculator/deadline', [SlaCalculatorController::class, 'getDeadline']);
+    Route::get('/sla-calculator/is-business-hours', [SlaCalculatorController::class, 'isWithinBusinessHours']);
+    Route::get('/sla-calculator/open-incidents', [SlaCalculatorController::class, 'getOpenIncidentsSlaStatus']);
+
     // Knowledge Base
     Route::get('/kb-articles/popular', [KbArticleController::class, 'popular']);
     Route::get('/kb-articles/recent', [KbArticleController::class, 'recent']);
     Route::get('/kb-articles/categories', [KbArticleController::class, 'categories']);
-    Route::post('/kb-articles/{kbArticle}/helpful', [KbArticleController::class, 'helpful']);
-    Route::post('/kb-articles/{kbArticle}/not-helpful', [KbArticleController::class, 'notHelpful']);
+    Route::post('/kb-articles/{id}/helpful', [KbArticleController::class, 'helpful']);
+    Route::post('/kb-articles/{id}/not-helpful', [KbArticleController::class, 'notHelpful']);
     Route::apiResource('kb-articles', KbArticleController::class);
 
     // Activity Logs
@@ -150,6 +159,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('business-hours', BusinessHourController::class);
 
     // Holidays
+    Route::get('/holidays/types', [HolidayController::class, 'types']);
+    Route::get('/holidays/for-sla', [HolidayController::class, 'forSlaCalculation']);
     Route::get('/holidays/upcoming', [HolidayController::class, 'upcoming']);
     Route::get('/holidays/check/{date}', [HolidayController::class, 'checkDate']);
     Route::get('/holidays/month/{month}', [HolidayController::class, 'byMonth']);
