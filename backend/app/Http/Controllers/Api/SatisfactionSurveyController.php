@@ -18,12 +18,26 @@ class SatisfactionSurveyController extends BaseCrudController
     ];
 
     /**
+     * Get all satisfaction surveys with relationships
+     */
+    public function index(Request $request)
+    {
+        $query = SatisfactionSurvey::with(['respondent', 'incident.assignee']);
+
+        if ($request->has('per_page')) {
+            return $query->orderBy('submitted_at', 'desc')->paginate((int) $request->get('per_page', 15));
+        }
+
+        return $query->orderBy('submitted_at', 'desc')->get();
+    }
+
+    /**
      * Get satisfaction survey by ticket ID
      */
     public function getByTicketId($ticketId)
     {
         $survey = SatisfactionSurvey::where('ticket_id', $ticketId)
-            ->with('respondent')
+            ->with(['respondent', 'incident.assignee'])
             ->first();
 
         if (!$survey) {

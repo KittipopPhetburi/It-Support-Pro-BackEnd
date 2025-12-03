@@ -25,4 +25,9 @@ class SatisfactionSurvey extends Model
     {
         return $this->belongsTo(User::class, 'respondent_id');
     }
+
+    public function incident()
+    {
+        return $this->belongsTo(Incident::class, 'ticket_id', 'id');
+    }
 }
