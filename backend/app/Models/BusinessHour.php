@@ -17,6 +17,7 @@ class BusinessHour extends Model
     ];
 
     protected $casts = [
+        'day_of_week' => 'integer',
         'is_working_day' => 'boolean',
     ];
 }

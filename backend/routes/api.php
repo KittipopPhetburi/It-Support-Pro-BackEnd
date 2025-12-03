@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\{
     UserController,
     AssetController,
     IncidentController,
+    IncidentTitleController,
     ProblemController,
     AssetRequestController,
     OtherRequestController,
@@ -68,6 +69,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/incidents/assigned', [IncidentController::class, 'assignedIncidents']);
     Route::post('/incidents/{incident}/assign', [IncidentController::class, 'assign']);
     Route::apiResource('incidents', IncidentController::class);
+
+    // Incident Titles (for BusinessHours management)
+    Route::get('/incident-titles/all', [IncidentTitleController::class, 'all']);
+    Route::get('/incident-titles/categories', [IncidentTitleController::class, 'categories']);
+    Route::get('/incident-titles/category/{category}', [IncidentTitleController::class, 'byCategory']);
+    Route::post('/incident-titles/{id}/toggle', [IncidentTitleController::class, 'toggle']);
+    Route::apiResource('incident-titles', IncidentTitleController::class);
 
     // Problems
     Route::get('/problems/statistics', [ProblemController::class, 'statistics']);

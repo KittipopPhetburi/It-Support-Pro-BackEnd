@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ServiceRequestController extends BaseCrudController
 {
@@ -54,7 +55,7 @@ class ServiceRequestController extends BaseCrudController
         $user = $request->user();
         
         // Debug log
-        \Log::info('Approve request', [
+        Log::info('Approve request', [
             'service_request_id' => $id,
             'authenticated_user_id' => $user ? $user->id : 'null',
             'authenticated_user_name' => $user ? $user->name : 'null',

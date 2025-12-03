@@ -13,5 +13,29 @@ class SlaController extends BaseCrudController
         'priority' => 'required|string|max:50',
         'response_time' => 'required|integer|min:0',
         'resolution_time' => 'required|integer|min:0',
+        'description' => 'nullable|string',
+        'is_active' => 'boolean',
     ];
+
+    public function all()
+    {
+        return response()->json([
+            'data' => Sla::all(),
+        ]);
+    }
+
+    public function getByPriority($priority)
+    {
+        $sla = Sla::where('priority', $priority)->where('is_active', true)->first();
+        
+        if (!$sla) {
+            return response()->json([
+                'message' => 'SLA not found for this priority',
+            ], 404);
+        }
+
+        return response()->json([
+            'data' => $sla,
+        ]);
+    }
 }
