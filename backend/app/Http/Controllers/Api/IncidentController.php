@@ -122,14 +122,14 @@ class IncidentController extends BaseCrudController
 
     public function show($id)
     {
-        $model = Incident::with('assignee')->findOrFail($id);
+        $model = Incident::with(['assignee', 'satisfactionSurvey'])->findOrFail($id);
 
         return response()->json($model);
     }
 
     public function index(Request $request)
     {
-        $query = Incident::with('assignee');
+        $query = Incident::with(['assignee', 'satisfactionSurvey']);
 
         // รองรับ pagination เบื้องต้น ?per_page=20
         if ($request->has('per_page')) {

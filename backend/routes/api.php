@@ -32,7 +32,6 @@ use App\Http\Controllers\Api\{
 */
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::get('/technicians', [UserController::class, 'getTechnicians']);
 
 /*
 |--------------------------------------------------------------------------
@@ -45,10 +44,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/password', [AuthController::class, 'updatePassword']);
-
+    
     // Users
     Route::get('/users/technicians', [UserController::class, 'technicians']);
     Route::apiResource('users', UserController::class);
+    Route::get('/technicians', [UserController::class, 'getTechnicians']);
 
     // Branches
     Route::get('/branches/all', [BranchController::class, 'all']);
@@ -128,6 +128,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Satisfaction Surveys
     Route::get('/satisfaction-surveys/statistics', [SatisfactionSurveyController::class, 'statistics']);
     Route::get('/satisfaction-surveys/check/{ticketId}', [SatisfactionSurveyController::class, 'checkTicket']);
+    Route::get('/satisfaction-surveys/ticket/{ticketId}', [SatisfactionSurveyController::class, 'getByTicketId']);
     Route::apiResource('satisfaction-surveys', SatisfactionSurveyController::class);
 
     // Business Hours

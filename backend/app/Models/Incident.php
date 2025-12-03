@@ -95,4 +95,9 @@ class Incident extends Model
         return $this->belongsToMany(Problem::class, 'problem_incident')
                     ->withTimestamps();
     }
+
+    public function satisfactionSurvey()
+    {
+        return $this->hasOne(SatisfactionSurvey::class, 'ticket_id', 'id');
+    }
 }
