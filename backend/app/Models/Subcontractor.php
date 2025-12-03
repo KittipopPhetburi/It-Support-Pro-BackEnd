@@ -9,16 +9,18 @@ class SubContractor extends Model
 {
     use HasFactory;
 
+    protected $table = 'sub_contractors';
+
     protected $fillable = [
         'name',
         'company',
         'email',
         'phone',
-        'specialization',
+        'specialty',
+        'province',
+        'bank_name',
+        'bank_account_name',
+        'bank_account_number',
         'status',
-    ];
-
-    protected $casts = [
-        'specialization' => 'array',
     ];
 }
