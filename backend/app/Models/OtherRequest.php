@@ -11,18 +11,39 @@ class OtherRequest extends Model
 
     protected $fillable = [
         'requester_id',
+        'requester_name',
         'title',
+        'item_name',
+        'item_type',
+        'request_type',
+        'quantity',
+        'unit',
         'description',
+        'reason',
         'category',
         'status',
         'request_date',
         'branch_id',
         'department_id',
         'organization',
+        'approved_by',
+        'approved_at',
+        'rejected_by',
+        'rejected_at',
+        'reject_reason',
+        'completed_by',
+        'completed_at',
+        'received_at',
+        'brand',
+        'model',
     ];
 
     protected $casts = [
         'request_date' => 'datetime',
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'received_at' => 'datetime',
     ];
 
     public function requester()
