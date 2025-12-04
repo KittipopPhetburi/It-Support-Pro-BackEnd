@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Incident;
+use App\Events\NewSurveyAvailable;
+use App\Events\IncidentUpdated;
 use Illuminate\Http\Request;
 
 class IncidentController extends BaseCrudController
@@ -147,6 +149,9 @@ class IncidentController extends BaseCrudController
         // Load the assignee relationship to return the technician name
         $model->load('assignee');
 
+        // Broadcast new incident created event
+        broadcast(new IncidentUpdated($model, 'created'))->toOthers();
+
         return response()->json($model, 201);
     }
 
@@ -177,6 +182,28 @@ class IncidentController extends BaseCrudController
         
         // Load the assignee relationship to return the technician name
         $model->load('assignee');
+
+        // Broadcast events for real-time updates
+        $newStatus = $data['status'] ?? $model->status;
+        
+        // Broadcast incident update to all listeners
+        broadcast(new IncidentUpdated($model, 'updated'))->toOthers();
+        
+        // When incident is resolved, notify the requester to complete satisfaction survey
+        if ($newStatus === 'Resolved' && $oldStatus !== 'Resolved') {
+            // Create survey data
+            $surveyData = [
+                'incident_id' => $model->id,
+                'ticket_id' => $model->ticket_id ?? 'INC-' . str_pad($model->id, 6, '0', STR_PAD_LEFT),
+                'title' => $model->title,
+                'technician_name' => $model->assignee ? $model->assignee->name : 'ไม่ระบุ',
+            ];
+            
+            // Broadcast to the requester
+            if ($model->requester_id) {
+                broadcast(new NewSurveyAvailable($model->requester_id, $surveyData));
+            }
+        }
 
         return response()->json($model);
     }

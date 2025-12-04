@@ -35,6 +35,51 @@ use App\Http\Controllers\Api\{
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+// Health Check endpoint for system monitoring
+Route::get('/health', function () {
+    try {
+        // Check database connection
+        \DB::connection()->getPdo();
+        $dbStatus = 'connected';
+    } catch (\Exception $e) {
+        $dbStatus = 'disconnected';
+    }
+    
+    return response()->json([
+        'status' => 'ok',
+        'timestamp' => now()->toISOString(),
+        'database' => $dbStatus,
+        'services' => [
+            'api' => 'running',
+            'database' => $dbStatus,
+        ]
+    ]);
+});
+
+// Database health check
+Route::get('/health/database', function () {
+    try {
+        $startTime = microtime(true);
+        \DB::connection()->getPdo();
+        \DB::select('SELECT 1');
+        $responseTime = round((microtime(true) - $startTime) * 1000);
+        
+        return response()->json([
+            'status' => 'ok',
+            'connected' => true,
+            'responseTime' => $responseTime,
+            'timestamp' => now()->toISOString(),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'connected' => false,
+            'error' => $e->getMessage(),
+            'timestamp' => now()->toISOString(),
+        ], 503);
+    }
+});
+
 /*
 |--------------------------------------------------------------------------
 | Protected Routes - ต้อง Login
