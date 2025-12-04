@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\SatisfactionSurvey;
+use App\Models\Incident;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class SatisfactionSurveyController extends BaseCrudController
 {
@@ -16,6 +18,70 @@ class SatisfactionSurveyController extends BaseCrudController
         'respondent_id' => 'required|integer|exists:users,id',
         'submitted_at' => 'nullable|date',
     ];
+
+    /**
+     * Store a new satisfaction survey and auto-close the incident
+     */
+    public function store(Request $request)
+    {
+        $data = $request->validate($this->validationRules);
+        
+        // Create the survey
+        $survey = SatisfactionSurvey::create($data);
+        
+        // Auto-close the incident after user submits satisfaction survey
+        $incidentId = $data['ticket_id'];
+        $incident = Incident::find($incidentId);
+        
+        if ($incident && $incident->status === 'Resolved') {
+            $incident->status = 'Closed';
+            $incident->closed_at = now();
+            $incident->satisfaction_rating = $data['rating'];
+            $incident->satisfaction_comment = $data['feedback'] ?? null;
+            $incident->satisfaction_date = now();
+            $incident->save();
+        }
+        
+        return response()->json($survey, 201);
+    }
+
+    /**
+     * Get pending satisfaction surveys for current user
+     * Returns resolved incidents that the user created but hasn't rated yet
+     */
+    public function pending()
+    {
+        $user = Auth::user();
+        
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        // Get resolved incidents created by the user that don't have a survey yet
+        $pendingSurveys = Incident::where('requester_id', $user->id)
+            ->where('status', 'Resolved')
+            ->whereDoesntHave('satisfactionSurvey')
+            ->with(['assignee'])
+            ->orderBy('resolved_at', 'desc')
+            ->get()
+            ->map(function ($incident) {
+                return [
+                    'incident_id' => $incident->id,
+                    'ticket_id' => 'INC-' . str_pad($incident->id, 5, '0', STR_PAD_LEFT),
+                    'title' => $incident->title,
+                    'description' => $incident->description,
+                    'resolved_at' => $incident->resolved_at,
+                    'technician_name' => $incident->assignee?->name ?? 'ไม่ระบุ',
+                    'technician_id' => $incident->assignee_id,
+                    'category' => $incident->category,
+                ];
+            });
+
+        return response()->json([
+            'pending_count' => $pendingSurveys->count(),
+            'surveys' => $pendingSurveys,
+        ]);
+    }
 
     /**
      * Get all satisfaction surveys with relationships

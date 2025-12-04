@@ -58,6 +58,56 @@ class IncidentController extends BaseCrudController
         'satisfaction_date' => 'nullable|date',
     ];
 
+    // Update rules - requester_id ไม่ required เพราะไม่ควรเปลี่ยนผู้แจ้งตอน update
+    protected array $updateValidationRules = [
+        'title' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'priority' => 'required|in:Low,Medium,High,Critical',
+        'status' => 'required|in:Open,In Progress,Pending,Resolved,Closed',
+        'category' => 'nullable|string|max:255',
+        'subcategory' => 'nullable|string|max:255',
+
+        'requester_id' => 'nullable|integer|exists:users,id',
+        'reported_by_id' => 'nullable|integer|exists:users,id',
+        'assignee_id' => 'nullable|integer|exists:users,id',
+
+        'resolved_at' => 'nullable|date',
+        'closed_at' => 'nullable|date',
+
+        'branch_id' => 'nullable|integer|exists:branches,id',
+        'department_id' => 'nullable|integer|exists:departments,id',
+        'organization' => 'nullable|string|max:255',
+
+        'contact_method' => 'nullable|string|max:255',
+        'contact_phone' => 'nullable|string|max:50',
+        'location' => 'nullable|string|max:255',
+
+        'asset_id' => 'nullable|integer|exists:assets,id',
+        'asset_name' => 'nullable|string|max:255',
+        'asset_brand' => 'nullable|string|max:255',
+        'asset_model' => 'nullable|string|max:255',
+        'asset_serial_number' => 'nullable|string|max:255',
+        'asset_inventory_number' => 'nullable|string|max:255',
+        'is_custom_asset' => 'nullable|boolean',
+        'equipment_type' => 'nullable|string|max:255',
+        'operating_system' => 'nullable|string|max:255',
+
+        'start_repair_date' => 'nullable|date',
+        'completion_date' => 'nullable|date',
+        'repair_details' => 'nullable|string',
+        'repair_status' => 'nullable|string|max:255',
+        'replacement_equipment' => 'nullable|string|max:255',
+        'has_additional_cost' => 'nullable|boolean',
+        'additional_cost' => 'nullable|numeric',
+
+        'technician_signature' => 'nullable|string',
+        'customer_signature' => 'nullable|string',
+
+        'satisfaction_rating' => 'nullable|integer|min:1|max:5',
+        'satisfaction_comment' => 'nullable|string',
+        'satisfaction_date' => 'nullable|date',
+    ];
+
     /**
      * Map frontend field names to backend field names
      */
@@ -103,6 +153,7 @@ class IncidentController extends BaseCrudController
     public function update(Request $request, $id)
     {
         $model = Incident::findOrFail($id);
+        $oldStatus = $model->status;
         
         // Map frontend field names to backend
         $mappedData = $this->mapRequestData($request);
@@ -110,6 +161,16 @@ class IncidentController extends BaseCrudController
         
         $rules = $this->updateValidationRules ?: $this->validationRules;
         $data = $request->validate($rules);
+
+        // Auto-set resolved_at when status changes to Resolved
+        if (isset($data['status']) && $data['status'] === 'Resolved' && $oldStatus !== 'Resolved') {
+            $data['resolved_at'] = now();
+        }
+        
+        // Auto-set closed_at when status changes to Closed
+        if (isset($data['status']) && $data['status'] === 'Closed' && $oldStatus !== 'Closed') {
+            $data['closed_at'] = now();
+        }
 
         $model->fill($data);
         $model->save();
@@ -122,14 +183,14 @@ class IncidentController extends BaseCrudController
 
     public function show($id)
     {
-        $model = Incident::with(['assignee', 'satisfactionSurvey'])->findOrFail($id);
+        $model = Incident::with(['assignee', 'requester', 'satisfactionSurvey'])->findOrFail($id);
 
         return response()->json($model);
     }
 
     public function index(Request $request)
     {
-        $query = Incident::with(['assignee', 'satisfactionSurvey']);
+        $query = Incident::with(['assignee', 'requester', 'satisfactionSurvey']);
 
         // รองรับ pagination เบื้องต้น ?per_page=20
         if ($request->has('per_page')) {

@@ -147,6 +147,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('notifications', NotificationController::class);
 
     // Satisfaction Surveys
+    Route::get('/satisfaction-surveys/pending', [SatisfactionSurveyController::class, 'pending']);
     Route::get('/satisfaction-surveys/statistics', [SatisfactionSurveyController::class, 'statistics']);
     Route::get('/satisfaction-surveys/check/{ticketId}', [SatisfactionSurveyController::class, 'checkTicket']);
     Route::get('/satisfaction-surveys/ticket/{ticketId}', [SatisfactionSurveyController::class, 'getByTicketId']);
