@@ -135,6 +135,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/activity-logs/my', [ActivityLogController::class, 'myLogs']);
     Route::get('/activity-logs/actions', [ActivityLogController::class, 'actions']);
     Route::get('/activity-logs/modules', [ActivityLogController::class, 'modules']);
+    Route::get('/activity-logs/statistics', [ActivityLogController::class, 'statistics']);
+    Route::get('/activity-logs/security', [ActivityLogController::class, 'securityLogs']);
+    Route::get('/activity-logs/errors', [ActivityLogController::class, 'errorLogs']);
     Route::delete('/activity-logs/clear-old', [ActivityLogController::class, 'clearOldLogs']);
     Route::apiResource('activity-logs', ActivityLogController::class);
 
