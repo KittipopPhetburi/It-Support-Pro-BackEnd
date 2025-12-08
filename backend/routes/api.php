@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Api\{
     AuthController,
     BranchController,
@@ -21,6 +22,7 @@ use App\Http\Controllers\Api\{
     KbArticleController,
     SubContractorController,
     SystemSettingController,
+    OrganizationNotificationController,
     SlaController,
     SlaCalculatorController,
     NotificationController,
@@ -224,12 +226,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('subcontractors', SubContractorController::class);
 
     // System Settings
+    Route::post('/system-settings/test-email', [SystemSettingController::class, 'testEmail']);
     Route::get('/system-settings/categories', [SystemSettingController::class, 'categories']);
     Route::get('/system-settings/key/{key}', [SystemSettingController::class, 'getByKey']);
     Route::get('/system-settings/category/{category}', [SystemSettingController::class, 'getByCategory']);
     Route::get('/system-settings/key-value', [SystemSettingController::class, 'asKeyValue']);
     Route::put('/system-settings/bulk', [SystemSettingController::class, 'bulkUpdate']);
     Route::apiResource('system-settings', SystemSettingController::class);
+
+    // Organization Notifications
+    Route::post('/organization-notifications/{id}/test/{channel}', [OrganizationNotificationController::class, 'testNotification']);
+    Route::apiResource('organization-notifications', OrganizationNotificationController::class);
 
     // Dashboard
     Route::prefix('dashboard')->group(function () {
