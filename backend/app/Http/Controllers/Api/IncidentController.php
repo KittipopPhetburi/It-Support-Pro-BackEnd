@@ -122,6 +122,11 @@ class IncidentController extends BaseCrudController
             $data['assignee_id'] = $data['assigned_to'];
         }
         
+        // เก็บค่า category, priority, status จาก frontend ไว้ก่อน (ค่าที่แสดงผล)
+        $displayCategory = $data['category'] ?? null;
+        $displayPriority = $data['priority'] ?? null;
+        $displayStatus = $data['status'] ?? null;
+        
         // Remove fields that are not in the database
         unset($data['assigned_to']);
         unset($data['assigned_to_name']);
@@ -132,6 +137,11 @@ class IncidentController extends BaseCrudController
         unset($data['reported_by']);
         unset($data['branch']);
         unset($data['department']);
+        
+        // ใส่ค่า category, priority, status กลับเข้าไปเพื่อให้บันทึกลงฐานข้อมูล
+        if ($displayCategory) $data['category'] = $displayCategory;
+        if ($displayPriority) $data['priority'] = $displayPriority;
+        if ($displayStatus) $data['status'] = $displayStatus;
         
         return $data;
     }
