@@ -200,6 +200,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/roles', [RoleController::class, 'index']);
     Route::get('/roles/{role}/permissions', [RolePermissionController::class, 'index']);
     Route::put('/roles/{role}/permissions', [RolePermissionController::class, 'update']);
+    Route::post('/roles/{role}/permissions/reset-default', [RolePermissionController::class, 'resetToDefault']);
 
     // Satisfaction Surveys
     Route::get('/satisfaction-surveys/pending', [SatisfactionSurveyController::class, 'pending']);
