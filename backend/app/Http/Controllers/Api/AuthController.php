@@ -54,17 +54,27 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $validated = $request->validate([
-            'email' => 'required|email',
+            'identifier' => 'required|string', // email or username
             'password' => 'required',
         ]);
 
-        if (!Auth::attempt($validated)) {
-            return response()->json([
-                'message' => 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
-            ], 401);
+        $identifier = $validated['identifier'];
+        $password = $validated['password'];
+
+        // Determine if identifier is an email address
+        if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
+            $credentials = ['email' => $identifier, 'password' => $password];
+            $user = User::where('email', $identifier)->first();
+        } else {
+            $credentials = ['username' => $identifier, 'password' => $password];
+            $user = User::where('username', $identifier)->first();
         }
 
-        $user = User::where('email', $validated['email'])->firstOrFail();
+        if (!$user || !Auth::attempt($credentials)) {
+            return response()->json([
+                'message' => 'ชื่อผู้ใช้/อีเมล หรือ รหัสผ่านไม่ถูกต้อง',
+            ], 401);
+        }
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
