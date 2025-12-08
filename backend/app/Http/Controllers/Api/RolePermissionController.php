@@ -145,64 +145,65 @@ class RolePermissionController extends Controller
         // Default presets based on role name
         switch ($role->name) {
             case 'Admin':
+                // 5. Admin - จัดการทุกอย่างได้เต็มรูปแบบ
                 $applyPreset($menus->mapWithKeys(fn($m) => [$m->key => [
                     'view' => true, 'create' => true, 'update' => true, 'delete' => true
                 ]])->toArray());
                 break;
 
             case 'Technician':
+                // 3. Technician - จัดการเหตุการณ์, ปัญหา, ฐานความรู้, อนุมัติคำขอ, Export
                 $applyPreset([
                     'dashboard_service' => ['view' => true],
-                    'incident_management' => ['view' => true, 'update' => true],
-                    'service_catalog' => ['view' => true],
-                    'problem_management' => ['view' => true, 'update' => true],
                     'dashboard_equipment' => ['view' => true],
-                    'asset_management' => ['view' => true, 'update' => true],
-                    'asset' => ['view' => true, 'update' => true],
-                    'asset_request' => ['view' => true],
-                    'other_request' => ['view' => true],
+                    'incident_management' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
+                    'service_catalog' => ['view' => true],
+                    'problem_management' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
+                    'knowledge_base' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
+                    'asset_request' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
+                    'other_request' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
                     'satisfaction_kpi' => ['view' => true],
                 ]);
                 break;
 
             case 'Helpdesk':
+                // 4. Helpdesk - จัดการเหตุการณ์, แค็ตตาล็อก, ปัญหา, ฐานความรู้, ดูคำขอ, ติดต่อช่างภายนอก, Export
                 $applyPreset([
                     'dashboard_service' => ['view' => true],
-                    'incident_management' => ['view' => true, 'create' => true],
-                    'service_catalog' => ['view' => true],
-                    'problem_management' => ['view' => true],
-                    'dashboard_equipment' => ['view' => true],
-                    'asset_management' => ['view' => true],
-                    'asset' => ['view' => true],
-                    'asset_request' => ['view' => true, 'create' => true],
-                    'other_request' => ['view' => true, 'create' => true],
+                    'incident_management' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
+                    'service_catalog' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
+                    'problem_management' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
+                    'knowledge_base' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
+                    'asset_request' => ['view' => true],
+                    'other_request' => ['view' => true],
                     'satisfaction_kpi' => ['view' => true],
+                    'branch_management' => ['view' => true],
+                    'sub_contract_management' => ['view' => true, 'create' => true, 'update' => true],
                 ]);
                 break;
 
             case 'Purchase':
+                // 2. Purchase - จัดการอุปกรณ์และคำขอเบิก/ยืม/ทดแทน ดูหน่วยงาน
                 $applyPreset([
                     'dashboard_equipment' => ['view' => true],
-                    'asset_management' => ['view' => true, 'update' => true],
-                    'asset' => ['view' => true],
-                    'asset_request' => ['view' => true, 'update' => true],
-                    'other_request' => ['view' => true, 'update' => true],
-                    'dashboard_service' => ['view' => true],
-                    'incident_management' => ['view' => true],
-                    'service_catalog' => ['view' => true],
-                    'problem_management' => ['view' => true],
-                    'business_hours_holidays' => ['view' => true],
-                    'sub_contract_management' => ['view' => true],
-                    'satisfaction_kpi' => ['view' => true],
+                    'asset_management' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
+                    'asset' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
+                    'asset_request' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
+                    'other_request' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
+                    'branch_management' => ['view' => true],
                 ]);
                 break;
 
             case 'User':
+                // 1. User - เพิ่ม/แก้ไขเหตุการณ์ของตัวเอง, ดูแค็ตตาล็อก, ทำคำขอยืม/เบิก, ดูฐานความรู้, ประเมินความพึงพอใจ
                 $applyPreset([
                     'dashboard_service' => ['view' => true],
-                    'incident_management' => ['view' => true, 'create' => true],
-                    'asset_request' => ['view' => true, 'create' => true],
-                    'other_request' => ['view' => true, 'create' => true],
+                    'incident_management' => ['view' => true, 'create' => true, 'update' => true],
+                    'service_catalog' => ['view' => true],
+                    'knowledge_base' => ['view' => true],
+                    'asset_request' => ['view' => true, 'create' => true, 'update' => true],
+                    'other_request' => ['view' => true, 'create' => true, 'update' => true],
+                    'satisfaction_kpi' => ['view' => true, 'create' => true],
                 ]);
                 break;
         }
