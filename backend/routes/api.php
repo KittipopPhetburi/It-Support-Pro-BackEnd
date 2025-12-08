@@ -26,7 +26,9 @@ use App\Http\Controllers\Api\{
     SlaController,
     SlaCalculatorController,
     NotificationController,
-    DashboardController
+    DashboardController,
+    RolePermissionController,
+    RoleController
 };
 
 /*
@@ -195,6 +197,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
     Route::delete('/notifications/clear-all', [NotificationController::class, 'clearAll']);
     Route::apiResource('notifications', NotificationController::class);
+
+    // Role permissions
+    Route::get('/roles', [RoleController::class, 'index']);
+    Route::get('/roles/{role}/permissions', [RolePermissionController::class, 'index']);
+    Route::put('/roles/{role}/permissions', [RolePermissionController::class, 'update']);
 
     // Satisfaction Surveys
     Route::get('/satisfaction-surveys/pending', [SatisfactionSurveyController::class, 'pending']);

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\User;
+use App\Models\Role;
+use App\Models\RoleMenuPermission;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -51,12 +53,19 @@ class UserController extends BaseCrudController
         }
         
         $users = $query->orderBy('name')->get();
+        
+        // Attach role permissions to each user
+        $users = $users->map(function ($user) {
+            return $this->attachRolePermissions($user);
+        });
+        
         return response()->json($users);
     }
 
     public function show($id)
     {
         $user = User::with(['branch', 'department'])->findOrFail($id);
+        $user = $this->attachRolePermissions($user);
         return response()->json($user);
     }
 
@@ -112,5 +121,41 @@ class UserController extends BaseCrudController
             ->get();
 
         return response()->json($technicians);
+    }
+
+    /**
+     * Helper: Attach role permissions to user
+     */
+    private function attachRolePermissions(User $user)
+    {
+        $role = Role::where('name', $user->role)->first();
+        
+        if ($role) {
+            $permissions = RoleMenuPermission::where('role_id', $role->id)
+                ->with('menu')
+                ->get()
+                ->filter(function ($perm) {
+                    return $perm->menu !== null;
+                })
+                ->map(function ($perm) {
+                    return [
+                        'menu_id' => $perm->menu_id,
+                        'menu_key' => $perm->menu->key,
+                        'menu_name' => $perm->menu->name,
+                        'menu_group' => $perm->menu->group,
+                        'can_view' => (bool) $perm->can_view,
+                        'can_create' => (bool) $perm->can_create,
+                        'can_update' => (bool) $perm->can_update,
+                        'can_delete' => (bool) $perm->can_delete,
+                    ];
+                })
+                ->values();
+            
+            $user->role_permissions = $permissions;
+        } else {
+            $user->role_permissions = [];
+        }
+        
+        return $user;
     }
 }

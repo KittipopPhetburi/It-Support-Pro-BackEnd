@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Role;
+use App\Models\RoleMenuPermission;
+use App\Models\Menu;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -77,9 +80,13 @@ class AuthController extends Controller
         }
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // Load role permissions
+        $user->load(['branch', 'department']);
+        $user = $this->attachRolePermissions($user);
+
         return response()->json([
             'message' => 'เข้าสู่ระบบสำเร็จ',
-            'user' => $user->load(['branch', 'department']),
+            'user' => $user,
             'token' => $token,
             'token_type' => 'Bearer',
         ]);
@@ -102,8 +109,11 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
+        $user = $request->user()->load(['branch', 'department']);
+        $user = $this->attachRolePermissions($user);
+        
         return response()->json([
-            'user' => $request->user()->load(['branch', 'department']),
+            'user' => $user,
         ]);
     }
 
@@ -132,5 +142,41 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'เปลี่ยนรหัสผ่านสำเร็จ',
         ]);
+    }
+
+    /**
+     * Helper: Attach role permissions to user
+     */
+    private function attachRolePermissions(User $user)
+    {
+        $role = Role::where('name', $user->role)->first();
+        
+        if ($role) {
+            $permissions = RoleMenuPermission::where('role_id', $role->id)
+                ->with('menu')
+                ->get()
+                ->filter(function ($perm) {
+                    return $perm->menu !== null;
+                })
+                ->map(function ($perm) {
+                    return [
+                        'menu_id' => $perm->menu_id,
+                        'menu_key' => $perm->menu->key,
+                        'menu_name' => $perm->menu->name,
+                        'menu_group' => $perm->menu->group,
+                        'can_view' => (bool) $perm->can_view,
+                        'can_create' => (bool) $perm->can_create,
+                        'can_update' => (bool) $perm->can_update,
+                        'can_delete' => (bool) $perm->can_delete,
+                    ];
+                })
+                ->values();
+            
+            $user->role_permissions = $permissions;
+        } else {
+            $user->role_permissions = [];
+        }
+        
+        return $user;
     }
 }
