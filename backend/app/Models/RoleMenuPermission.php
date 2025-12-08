@@ -13,10 +13,13 @@ class RoleMenuPermission extends Model
     protected $fillable = [
         'role_id',
         'menu_id',
+        'role_name',
+        'menu_name',
         'can_view',
         'can_create',
         'can_update',
         'can_delete',
+        'created_by_username',
     ];
 
     protected $casts = [
