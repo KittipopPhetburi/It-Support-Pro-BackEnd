@@ -158,11 +158,22 @@ class IncidentController extends BaseCrudController
         
         // Load the assignee relationship to return the technician name
         $model->load('assignee');
+        
+        // Add technician name to response for easier frontend consumption
+        $response = $model->toArray();
+        
+        // Remove nested assignee object to avoid confusion
+        if (isset($response['assignee'])) {
+            unset($response['assignee']);
+        }
+        
+        // Add flat field for technician name
+        $response['assigned_to_name'] = $model->assignee ? $model->assignee->name : null;
 
         // Broadcast new incident created event
         broadcast(new IncidentUpdated($model, 'created'))->toOthers();
 
-        return response()->json($model, 201);
+        return response()->json($response, 201);
     }
 
     public function update(Request $request, $id)
@@ -192,6 +203,17 @@ class IncidentController extends BaseCrudController
         
         // Load the assignee relationship to return the technician name
         $model->load('assignee');
+        
+        // Add technician name to response for easier frontend consumption
+        $response = $model->toArray();
+        
+        // Remove nested assignee object to avoid confusion
+        if (isset($response['assignee'])) {
+            unset($response['assignee']);
+        }
+        
+        // Add flat field for technician name
+        $response['assigned_to_name'] = $model->assignee ? $model->assignee->name : null;
 
         // Broadcast events for real-time updates
         $newStatus = $data['status'] ?? $model->status;
@@ -215,14 +237,24 @@ class IncidentController extends BaseCrudController
             }
         }
 
-        return response()->json($model);
+        return response()->json($response);
     }
 
     public function show($id)
     {
         $model = Incident::with(['assignee', 'requester', 'satisfactionSurvey'])->findOrFail($id);
+        
+        $response = $model->toArray();
+        
+        // Remove nested assignee object to avoid confusion
+        if (isset($response['assignee'])) {
+            unset($response['assignee']);
+        }
+        
+        // Add flat field for technician name
+        $response['assigned_to_name'] = $model->assignee ? $model->assignee->name : null;
 
-        return response()->json($model);
+        return response()->json($response);
     }
 
     public function index(Request $request)
@@ -231,9 +263,36 @@ class IncidentController extends BaseCrudController
 
         // รองรับ pagination เบื้องต้น ?per_page=20
         if ($request->has('per_page')) {
-            return $query->paginate((int) $request->get('per_page', 15));
+            $paginated = $query->paginate((int) $request->get('per_page', 15));
+            // Add assigned_to_name to each item
+            $paginated->getCollection()->transform(function ($incident) {
+                $item = $incident->toArray();
+                
+                // Remove nested assignee object to avoid confusion
+                if (isset($item['assignee'])) {
+                    unset($item['assignee']);
+                }
+                
+                // Add flat field for technician name
+                $item['assigned_to_name'] = $incident->assignee ? $incident->assignee->name : null;
+                return $item;
+            });
+            return $paginated;
         }
 
-        return $query->get();
+        $incidents = $query->get();
+        // Add assigned_to_name to each item
+        return $incidents->map(function ($incident) {
+            $item = $incident->toArray();
+            
+            // Remove nested assignee object to avoid confusion
+            if (isset($item['assignee'])) {
+                unset($item['assignee']);
+            }
+            
+            // Add flat field for technician name
+            $item['assigned_to_name'] = $incident->assignee ? $incident->assignee->name : null;
+            return $item;
+        });
     }
 }
