@@ -21,16 +21,29 @@ class DatabaseSeeder extends Seeder
         // Seed roles, menus, and admin permissions
         $this->call(RoleMenuPermissionSeeder::class);
 
-        // Incident references (categories, priorities, statuses)
-        $this->call(IncidentReferenceSeeder::class);
+        // Seed branches and departments
+        $this->call(BranchSeeder::class);
+        $this->call(DepartmentSeeder::class);
 
-        // Incident titles
-        $this->call(IncidentTitleSeeder::class);
+        // Seed assets
+        $this->call(AssetSeeder::class);
 
-        // System settings
+        // Seed SLA configurations
+        $this->call(SlaSeeder::class);
+
+        // Seed system settings
         $this->call(SystemSettingsSeeder::class);
 
-        // Organization notifications
+        // Seed organization notifications
         $this->call(OrganizationNotificationsSeeder::class);
+
+        // Seed incident titles
+        $this->call(IncidentTitleSeeder::class);
+
+        // Seed incident references
+        $this->call(IncidentReferenceSeeder::class);
+
+        // Seed asset requests
+        $this->call(AssetRequestSeeder::class);
     }
 }
