@@ -20,5 +20,17 @@ class DatabaseSeeder extends Seeder
 
         // Seed roles, menus, and admin permissions
         $this->call(RoleMenuPermissionSeeder::class);
+
+        // Incident references (categories, priorities, statuses)
+        $this->call(IncidentReferenceSeeder::class);
+
+        // Incident titles
+        $this->call(IncidentTitleSeeder::class);
+
+        // System settings
+        $this->call(SystemSettingsSeeder::class);
+
+        // Organization notifications
+        $this->call(OrganizationNotificationsSeeder::class);
     }
 }
