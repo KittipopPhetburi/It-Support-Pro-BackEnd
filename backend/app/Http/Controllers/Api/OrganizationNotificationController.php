@@ -171,16 +171,61 @@ class OrganizationNotificationController extends Controller
                    "Request Type: {$notification->request_type}\n\n" .
                    "If you received this message, your Line notification is configured correctly.";
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $notification->line_token,
-        ])->asForm()->post('https://notify-api.line.me/api/notify', [
-            'message' => $message
-        ]);
+        try {
+            // Use cURL directly with IP resolution
+            $ch = curl_init('https://notify-api.line.me/api/notify');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => [
+                    'Authorization: Bearer ' . $notification->line_token,
+                    'Content-Type: application/x-www-form-urlencoded',
+                ],
+                CURLOPT_POSTFIELDS => http_build_query(['message' => $message]),
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+                CURLOPT_RESOLVE => ['notify-api.line.me:443:203.104.153.18'],
+            ]);
 
-        if ($response->successful()) {
-            return response()->json(['success' => true, 'message' => 'Test Line message sent successfully']);
+            $result = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            $curlErrno = curl_errno($ch);
+            curl_close($ch);
+
+            \Log::info('LINE cURL Response', [
+                'http_code' => $httpCode,
+                'curl_error' => $curlError,
+                'curl_errno' => $curlErrno,
+                'result' => $result
+            ]);
+
+            if ($curlErrno) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'DNS Error: Your network cannot resolve notify-api.line.me. Try using different DNS (8.8.8.8)'
+                ], 500);
+            }
+
+            if ($httpCode === 200) {
+                return response()->json(['success' => true, 'message' => 'Test Line message sent successfully']);
+            }
+            
+            return response()->json([
+                'success' => false, 
+                'message' => 'Line API error: ' . ($response['message'] ?? 'Unknown error')
+            ], 500);
+            
+        } catch (\Exception $e) {
+            \Log::error('LINE Exception: ' . $e->getMessage());
+            return response()->json([
+                'success' => false, 
+                'message' => 'Line error: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json(['success' => false, 'message' => 'Line API error'], 500);
     }
 }

@@ -13,7 +13,7 @@ class SystemSettingController extends BaseCrudController
 
     protected array $validationRules = [
         'category' => 'nullable|string|max:255',
-        'key' => 'required|string|max:255',
+        'key' => 'nullable|string|max:255',
         'value' => 'required|string',
         'description' => 'nullable|string',
     ];
