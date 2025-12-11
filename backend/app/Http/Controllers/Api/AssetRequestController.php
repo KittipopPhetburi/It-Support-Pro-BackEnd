@@ -123,6 +123,43 @@ class AssetRequestController extends BaseCrudController
             'approved_at' => now(),
             'approved_by' => auth()->user()->name,
         ]);
+
+        // Update Asset status and assigned user if an asset is linked to this request
+        if ($assetRequest->asset_id) {
+            $asset = \App\Models\Asset::find($assetRequest->asset_id);
+            if ($asset) {
+                // Determine new status based on request type
+                $newStatus = 'In Use'; // Default for Requisition and Replace
+                if ($assetRequest->request_type === 'Borrow') {
+                    $newStatus = 'On Loan';
+                }
+
+                // Get requester info from the request or the related user
+                $requesterName = $assetRequest->requester_name;
+                $requesterEmail = null;
+                $requesterPhone = null;
+
+                // Try to get email and phone from the requester user if exists
+                if ($assetRequest->requester_id) {
+                    $requester = \App\Models\User::find($assetRequest->requester_id);
+                    if ($requester) {
+                        $requesterName = $requesterName ?: $requester->name;
+                        $requesterEmail = $requester->email;
+                        $requesterPhone = $requester->phone ?? null;
+                    }
+                }
+
+                // Update asset with status and assigned user info
+                $asset->update([
+                    'status' => $newStatus,
+                    'assigned_to' => $requesterName,
+                    'assigned_to_email' => $requesterEmail,
+                    'assigned_to_phone' => $requesterPhone,
+                    'assigned_to_id' => $assetRequest->requester_id,
+                ]);
+            }
+        }
+
         return response()->json($assetRequest);
     }
 

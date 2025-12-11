@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Asset;
+use Illuminate\Http\Request;
 
 class AssetController extends BaseCrudController
 {
@@ -16,7 +17,7 @@ class AssetController extends BaseCrudController
         'model' => 'nullable|string|max:255',
         'serial_number' => 'required|string|max:255',
         'inventory_number' => 'nullable|string|max:255',
-        'status' => 'required|in:Available,In Use,Maintenance,Retired',
+        'status' => 'required|in:Available,In Use,Maintenance,Retired,On Loan',
         'assigned_to_id' => 'nullable|integer|exists:users,id',
         'assigned_to' => 'nullable|string|max:255',
         'assigned_to_email' => 'nullable|email|max:255',
@@ -39,12 +40,32 @@ class AssetController extends BaseCrudController
         'qr_code' => 'nullable|string|max:255',
     ];
 
+    /**
+     * Display the specified asset with maintenance history
+     */
+    public function show($id)
+    {
+        $asset = Asset::with(['maintenanceHistories.incident', 'maintenanceHistories.technician'])->findOrFail($id);
+        return response()->json($asset);
+    }
+
+    /**
+     * Get maintenance history for a specific asset
+     */
+    public function maintenanceHistory($id)
+    {
+        $asset = Asset::findOrFail($id);
+        $history = $asset->maintenanceHistories()->with('technician', 'incident')->get();
+        return response()->json($history);
+    }
+
     public function statistics()
     {
         return response()->json([
             'total' => Asset::count(),
             'available' => Asset::where('status', 'Available')->count(),
             'in_use' => Asset::where('status', 'In Use')->count(),
+            'on_loan' => Asset::where('status', 'On Loan')->count(),
             'maintenance' => Asset::where('status', 'Maintenance')->count(),
             'retired' => Asset::where('status', 'Retired')->count(),
             'hardware' => Asset::where('category', 'Hardware')->count(),
@@ -52,3 +73,4 @@ class AssetController extends BaseCrudController
         ]);
     }
 }
+

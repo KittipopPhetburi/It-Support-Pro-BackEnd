@@ -28,6 +28,7 @@ class Incident extends Model
         'contact_phone',
         'location',
         'asset_id',
+        'previous_asset_status',
         'asset_name',
         'asset_brand',
         'asset_model',

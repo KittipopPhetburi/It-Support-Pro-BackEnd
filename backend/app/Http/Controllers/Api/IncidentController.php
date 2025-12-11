@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\Incident;
 use App\Events\NewSurveyAvailable;
 use App\Events\IncidentUpdated;
+use App\Events\AssetUpdated;
 use Illuminate\Http\Request;
 
 class IncidentController extends BaseCrudController
@@ -155,6 +156,21 @@ class IncidentController extends BaseCrudController
         $data = $request->validate($this->validationRules);
         
         $model = Incident::create($data);
+
+        // Update Asset status to Maintenance when incident is created with an asset
+        if ($model->asset_id) {
+            $asset = \App\Models\Asset::find($model->asset_id);
+            if ($asset) {
+                // Save previous status before changing to Maintenance
+                $model->previous_asset_status = $asset->status;
+                $model->save();
+                
+                $asset->update(['status' => 'Maintenance']);
+                
+                // Broadcast asset updated event
+                broadcast(new AssetUpdated($asset->fresh(), 'updated'))->toOthers();
+            }
+        }
         
         // Load the assignee relationship to return the technician name
         $model->load('assignee');
@@ -196,6 +212,41 @@ class IncidentController extends BaseCrudController
         // Auto-set closed_at when status changes to Closed
         if (isset($data['status']) && $data['status'] === 'Closed' && $oldStatus !== 'Closed') {
             $data['closed_at'] = now();
+
+            // Update Asset status back to previous status (or Available) when incident is closed
+            if ($model->asset_id) {
+                $asset = \App\Models\Asset::find($model->asset_id);
+                if ($asset) {
+                    // Restore previous status if it was In Use or On Loan, otherwise set to Available
+                    $previousStatus = $model->previous_asset_status;
+                    if (in_array($previousStatus, ['In Use', 'On Loan'])) {
+                        $asset->update(['status' => $previousStatus]);
+                    } else {
+                        $asset->update(['status' => 'Available']);
+                    }
+                    
+                    // Broadcast asset updated event
+                    broadcast(new AssetUpdated($asset->fresh(), 'updated'))->toOthers();
+                }
+            }
+
+            // Create MaintenanceHistory record when incident is closed with repair details
+            if ($model->asset_id && ($data['repair_details'] ?? $model->repair_details)) {
+                \App\Models\MaintenanceHistory::create([
+                    'asset_id' => $model->asset_id,
+                    'incident_id' => $model->id,
+                    'title' => $model->title,
+                    'description' => $data['repair_details'] ?? $model->repair_details,
+                    'repair_status' => $data['repair_status'] ?? $model->repair_status ?? 'Completed',
+                    'technician_id' => $model->assignee_id,
+                    'technician_name' => $model->assignee ? $model->assignee->name : null,
+                    'start_date' => $model->start_repair_date,
+                    'completion_date' => $data['completion_date'] ?? $model->completion_date ?? now(),
+                    'has_cost' => $data['has_additional_cost'] ?? $model->has_additional_cost ?? false,
+                    'cost' => $data['additional_cost'] ?? $model->additional_cost,
+                    'replacement_equipment' => $data['replacement_equipment'] ?? $model->replacement_equipment,
+                ]);
+            }
         }
 
         $model->fill($data);

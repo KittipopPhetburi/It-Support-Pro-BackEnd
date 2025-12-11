@@ -68,4 +68,9 @@ class Asset extends Model
     {
         return $this->hasMany(Incident::class);
     }
+
+    public function maintenanceHistories()
+    {
+        return $this->hasMany(MaintenanceHistory::class)->orderBy('created_at', 'desc');
+    }
 }

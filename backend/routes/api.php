@@ -66,6 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Assets
     Route::get('/assets/statistics', [AssetController::class, 'statistics']);
+    Route::get('/assets/{asset}/maintenance-history', [AssetController::class, 'maintenanceHistory']);
     Route::apiResource('assets', AssetController::class);
 
     // Incidents
