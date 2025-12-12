@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HasBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Problem extends Model
 {
-    use HasFactory;
+    use HasFactory, HasBranch;
 
     protected $fillable = [
         'title',
@@ -18,6 +19,7 @@ class Problem extends Model
         'root_cause',
         'workaround',
         'solution',
+        'branch_id',
         'resolved_at',
     ];
 

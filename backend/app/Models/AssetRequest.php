@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HasBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class AssetRequest extends Model
 {
-    use HasFactory;
+    use HasFactory, HasBranch;
 
     protected $fillable = [
         'requester_id',
