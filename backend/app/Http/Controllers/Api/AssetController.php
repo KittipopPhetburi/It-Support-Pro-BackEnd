@@ -41,11 +41,16 @@ class AssetController extends BaseCrudController
     ];
 
     /**
-     * Display the specified asset with maintenance history
+     * Display the specified asset with maintenance history and borrowing history
      */
     public function show($id)
     {
-        $asset = Asset::with(['maintenanceHistories.incident', 'maintenanceHistories.technician'])->findOrFail($id);
+        $asset = Asset::with([
+            'maintenanceHistories.incident', 
+            'maintenanceHistories.technician',
+            'borrowingHistories.user',
+            'borrowingHistories.processor'
+        ])->findOrFail($id);
         return response()->json($asset);
     }
 
@@ -56,6 +61,16 @@ class AssetController extends BaseCrudController
     {
         $asset = Asset::findOrFail($id);
         $history = $asset->maintenanceHistories()->with('technician', 'incident')->get();
+        return response()->json($history);
+    }
+
+    /**
+     * Get borrowing history for a specific asset
+     */
+    public function borrowingHistory($id)
+    {
+        $asset = Asset::findOrFail($id);
+        $history = $asset->borrowingHistories()->with('user', 'processor')->get();
         return response()->json($history);
     }
 

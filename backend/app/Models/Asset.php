@@ -74,4 +74,9 @@ class Asset extends Model
     {
         return $this->hasMany(MaintenanceHistory::class)->orderBy('created_at', 'desc');
     }
+
+    public function borrowingHistories()
+    {
+        return $this->hasMany(BorrowingHistory::class)->orderBy('action_date', 'desc');
+    }
 }

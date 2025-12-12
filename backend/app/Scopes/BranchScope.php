@@ -15,11 +15,17 @@ class BranchScope implements Scope
      */
     public function apply(Builder $builder, Model $model)
     {
-        $user = auth()->user();
+        // ลองหลายวิธีในการดึง user - รองรับทั้ง web และ API (Sanctum)
+        $user = request()->user() ?? auth('sanctum')->user() ?? auth()->user();
+        
+        // Debug log
+        \Log::info('BranchScope: Table=' . $model->getTable() . ', User=' . ($user ? $user->name . ' (role=' . $user->role . ', branch_id=' . $user->branch_id . ')' : 'NULL'));
         
         // ถ้ามี User login และไม่ใช่ admin ให้กรองตาม branch_id
         if ($user && strtolower($user->role) !== 'admin') {
             $builder->where($model->getTable() . '.branch_id', $user->branch_id);
+            \Log::info('BranchScope: Filtering by branch_id=' . $user->branch_id);
         }
     }
 }
+
