@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Branch;
+use App\Events\BranchUpdated;
+use Illuminate\Http\Request;
 
 class BranchController extends BaseCrudController
 {
@@ -17,4 +19,39 @@ class BranchController extends BaseCrudController
         'organization' => 'nullable|string|max:255',
         'status' => 'nullable|in:Active,Inactive',
     ];
+
+    public function store(Request $request)
+    {
+        $data = $request->validate($this->validationRules);
+        $branch = Branch::create($data);
+
+        // Broadcast event
+        event(new BranchUpdated($branch, 'created'));
+
+        return response()->json($branch, 201);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $branch = Branch::findOrFail($id);
+        $data = $request->validate($this->validationRules);
+        $branch->fill($data);
+        $branch->save();
+
+        // Broadcast event
+        event(new BranchUpdated($branch, 'updated'));
+
+        return response()->json($branch);
+    }
+
+    public function destroy($id)
+    {
+        $branch = Branch::findOrFail($id);
+        $branch->delete();
+
+        // Broadcast event
+        event(new BranchUpdated($branch, 'deleted'));
+
+        return response()->json(null, 204);
+    }
 }

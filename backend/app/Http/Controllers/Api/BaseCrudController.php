@@ -38,11 +38,16 @@ abstract class BaseCrudController extends Controller
 
     public function store(Request $request)
     {
-        $data = $this->validationRules
-            ? $request->validate($this->validationRules)
-            : $request->all();
+        // Get all input data first
+        $allData = $request->all();
+        
+        // Validate only if rules exist, but keep all data
+        if ($this->validationRules) {
+            $request->validate($this->validationRules);
+        }
 
-        $model = call_user_func([$this->modelClass, 'create'], $data);
+        // Use all data for create (fillable will filter what's allowed)
+        $model = call_user_func([$this->modelClass, 'create'], $allData);
 
         return response()->json($model, 201);
     }

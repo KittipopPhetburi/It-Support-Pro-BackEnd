@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\AssetRequest;
+use App\Events\AssetRequestUpdated;
 
 class AssetRequestController extends BaseCrudController
 {
@@ -66,6 +67,9 @@ class AssetRequestController extends BaseCrudController
         $model = AssetRequest::with('requester', 'asset', 'branch', 'departmentRelation')
             ->findOrFail($model->id);
 
+        // Broadcast event
+        event(new AssetRequestUpdated($model, 'created'));
+
         return response()->json($model, 201);
     }
 
@@ -85,6 +89,9 @@ class AssetRequestController extends BaseCrudController
         // Reload with relationships
         $model = AssetRequest::with('requester', 'asset', 'branch', 'departmentRelation')
             ->findOrFail($model->id);
+
+        // Broadcast event
+        event(new AssetRequestUpdated($model, 'updated'));
 
         return response()->json($model);
     }
@@ -118,16 +125,21 @@ class AssetRequestController extends BaseCrudController
 
     public function approve(AssetRequest $assetRequest)
     {
-        $assetRequest->update([
-            'status' => 'Approved',
-            'approved_at' => now(),
-            'approved_by' => auth()->user()->name,
-        ]);
-
         // Update Asset status and assigned user if an asset is linked to this request
+        $borrowedSerial = null;
+        
         if ($assetRequest->asset_id) {
             $asset = \App\Models\Asset::find($assetRequest->asset_id);
             if ($asset) {
+                // Get first available serial
+                $borrowedSerial = $asset->getFirstAvailableSerial();
+                
+                if (!$borrowedSerial) {
+                    return response()->json([
+                        'error' => 'ไม่มี Serial Number ที่ว่างสำหรับทรัพย์สินนี้',
+                    ], 422);
+                }
+
                 // Determine new status based on request type
                 $newStatus = 'In Use'; // Default for Requisition and Replace
                 if ($assetRequest->request_type === 'Borrow') {
@@ -149,16 +161,33 @@ class AssetRequestController extends BaseCrudController
                     }
                 }
 
-                // Update asset with status and assigned user info
-                $asset->update([
-                    'status' => $newStatus,
-                    'assigned_to' => $requesterName,
-                    'assigned_to_email' => $requesterEmail,
-                    'assigned_to_phone' => $requesterPhone,
-                    'assigned_to_id' => $assetRequest->requester_id,
-                ]);
+                // Check if this will use the last available serial
+                $availableAfterThis = $asset->getAvailableQuantity() - 1;
+                
+                // Only update asset status if all serials are now used
+                if ($availableAfterThis <= 0) {
+                    $asset->update([
+                        'status' => $newStatus,
+                        'assigned_to' => $requesterName,
+                        'assigned_to_email' => $requesterEmail,
+                        'assigned_to_phone' => $requesterPhone,
+                        'assigned_to_id' => $assetRequest->requester_id,
+                    ]);
+                }
+                // If still has available serials, keep status as Available
             }
         }
+
+        // Update request with borrowed serial
+        $assetRequest->update([
+            'status' => 'Approved',
+            'approved_at' => now(),
+            'approved_by' => auth()->user()->name,
+            'borrowed_serial' => $borrowedSerial,
+        ]);
+
+        // Broadcast event
+        event(new AssetRequestUpdated($assetRequest->fresh(), 'status-changed'));
 
         return response()->json($assetRequest);
     }
@@ -172,6 +201,10 @@ class AssetRequestController extends BaseCrudController
             'rejected_by' => auth()->user()->name,
             'reject_reason' => $reason,
         ]);
+
+        // Broadcast event
+        event(new AssetRequestUpdated($assetRequest->fresh(), 'status-changed'));
+
         return response()->json($assetRequest);
     }
 }

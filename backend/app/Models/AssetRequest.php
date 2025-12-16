@@ -17,6 +17,7 @@ class AssetRequest extends Model
         'asset_type',
         'asset_id',
         'quantity',
+        'borrowed_serial',
         'justification',
         'reason',
         'status',

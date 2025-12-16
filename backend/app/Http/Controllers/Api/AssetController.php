@@ -17,6 +17,7 @@ class AssetController extends BaseCrudController
         'model' => 'nullable|string|max:255',
         'serial_number' => 'required|string|max:255',
         'inventory_number' => 'nullable|string|max:255',
+        'quantity' => 'nullable|integer|min:1',
         'status' => 'required|in:Available,In Use,Maintenance,Retired,On Loan',
         'assigned_to_id' => 'nullable|integer|exists:users,id',
         'assigned_to' => 'nullable|string|max:255',
@@ -41,7 +42,32 @@ class AssetController extends BaseCrudController
     ];
 
     /**
-     * Display the specified asset with maintenance history and borrowing history
+     * Override index to load branch relation for organization display
+     * and include available_quantity for status display
+     */
+    public function index(\Illuminate\Http\Request $request)
+    {
+        $query = Asset::with('branch');
+
+        if ($request->has('per_page')) {
+            $paginated = $query->paginate((int) $request->get('per_page', 15));
+            $paginated->getCollection()->transform(function ($asset) {
+                $asset->available_quantity = $asset->getAvailableQuantity();
+                return $asset;
+            });
+            return $paginated;
+        }
+
+        $assets = $query->get();
+        return $assets->map(function ($asset) {
+            $asset->available_quantity = $asset->getAvailableQuantity();
+            return $asset;
+        });
+    }
+
+    /**
+     * Display the specified asset with maintenance history, borrowing history,
+     * and serial statuses for individual serial tracking
      */
     public function show($id)
     {
@@ -51,7 +77,14 @@ class AssetController extends BaseCrudController
             'borrowingHistories.user',
             'borrowingHistories.processor'
         ])->findOrFail($id);
-        return response()->json($asset);
+        
+        // Add serial statuses with requester info
+        $response = $asset->toArray();
+        $response['serial_statuses'] = $asset->getSerialStatuses();
+        $response['available_quantity'] = $asset->getAvailableQuantity();
+        $response['available_serials'] = $asset->getAvailableSerials();
+        
+        return response()->json($response);
     }
 
     /**
@@ -85,6 +118,103 @@ class AssetController extends BaseCrudController
             'retired' => Asset::where('status', 'Retired')->count(),
             'hardware' => Asset::where('category', 'Hardware')->count(),
             'software' => Asset::where('category', 'Software')->count(),
+        ]);
+    }
+
+    /**
+     * Store multiple assets at once (Bulk Create)
+     */
+    public function bulkStore(Request $request)
+    {
+        $request->validate([
+            'common_data' => 'required|array',
+            'common_data.name' => 'required|string|max:255',
+            'common_data.type' => 'required|string|max:255',
+            'serial_numbers' => 'required|array|min:1',
+            'serial_numbers.*' => 'required|string|max:255',
+        ]);
+
+        $commonData = $request->input('common_data');
+        $serialNumbers = $request->input('serial_numbers');
+
+        // Sync organization from branch if not provided
+        if (!empty($commonData['branch_id']) && empty($commonData['organization'])) {
+            $branch = \App\Models\Branch::find($commonData['branch_id']);
+            if ($branch) {
+                $commonData['organization'] = $branch->name;
+            }
+        }
+
+        // Check for duplicates in database
+        $existingSerials = Asset::whereIn('serial_number', $serialNumbers)
+            ->pluck('serial_number')
+            ->toArray();
+
+        if (count($existingSerials) > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Serial numbers already exist',
+                'duplicates' => $existingSerials,
+            ], 422);
+        }
+
+        // Create assets
+        $createdAssets = [];
+        \DB::beginTransaction();
+        try {
+            foreach ($serialNumbers as $index => $serialNumber) {
+                $assetData = array_merge($commonData, [
+                    'serial_number' => $serialNumber,
+                    'qr_code' => 'QR-' . strtoupper(substr(md5($serialNumber . time() . $index), 0, 8)),
+                ]);
+                $asset = Asset::create($assetData);
+                $createdAssets[] = $asset;
+            }
+            \DB::commit();
+
+            // Load branch relation for all created assets
+            $createdAssets = Asset::with('branch')
+                ->whereIn('id', array_map(fn($a) => $a->id, $createdAssets))
+                ->get()
+                ->toArray();
+
+            // Broadcast event for real-time update
+            foreach ($createdAssets as $asset) {
+                $assetModel = Asset::find($asset['id']);
+                if ($assetModel) {
+                    broadcast(new \App\Events\AssetUpdated($assetModel, 'created'));
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'สร้างอุปกรณ์สำเร็จ ' . count($createdAssets) . ' รายการ',
+                'count' => count($createdAssets),
+                'assets' => $createdAssets,
+            ], 201);
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการสร้างอุปกรณ์',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if serial numbers exist (for validation before submit)
+     */
+    public function checkSerialNumbers(Request $request)
+    {
+        $serialNumbers = $request->input('serial_numbers', []);
+        
+        $existingSerials = Asset::whereIn('serial_number', $serialNumbers)
+            ->pluck('serial_number')
+            ->toArray();
+
+        return response()->json([
+            'duplicates' => $existingSerials,
         ]);
     }
 }

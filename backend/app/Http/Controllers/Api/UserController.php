@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\RoleMenuPermission;
+use App\Events\UserUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -84,6 +85,9 @@ class UserController extends BaseCrudController
         $user = User::create($data);
         $user->load(['branch', 'department']);
 
+        // Broadcast event
+        event(new UserUpdated($user, 'created'));
+
         return response()->json($user, 201);
     }
 
@@ -109,6 +113,9 @@ class UserController extends BaseCrudController
         $user->fill($data);
         $user->save();
         $user->load(['branch', 'department']);
+
+        // Broadcast event
+        event(new UserUpdated($user, 'updated'));
 
         return response()->json($user);
     }

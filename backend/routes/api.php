@@ -67,6 +67,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Assets
     Route::get('/assets/statistics', [AssetController::class, 'statistics']);
     Route::get('/assets/{asset}/maintenance-history', [AssetController::class, 'maintenanceHistory']);
+    Route::post('/assets/bulk', [AssetController::class, 'bulkStore']);
+    Route::post('/assets/check-serial-numbers', [AssetController::class, 'checkSerialNumbers']);
     Route::apiResource('assets', AssetController::class);
 
     // Incidents
@@ -213,7 +215,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/sla-compliance', [DashboardController::class, 'slaCompliance']);
     });
 
-    
+});
+
+/*
+|--------------------------------------------------------------------------
+| Health Check Routes - Public (ไม่ต้อง Login)
+|--------------------------------------------------------------------------
+*/
 // Health Check endpoint for system monitoring
 Route::get('/health', function () {
     try {
@@ -259,4 +267,3 @@ Route::get('/health/database', function () {
     }
 });
 
-});

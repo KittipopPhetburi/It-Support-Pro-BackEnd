@@ -18,6 +18,7 @@ class Asset extends Model
         'model',
         'serial_number',
         'inventory_number',
+        'quantity',
         'status',
         'assigned_to_id',
         'assigned_to',
@@ -46,6 +47,7 @@ class Asset extends Model
         'start_date' => 'date',
         'warranty_expiry' => 'date',
         'expiry_date' => 'date',
+        'quantity' => 'integer',
         'total_licenses' => 'integer',
         'used_licenses' => 'integer',
     ];
@@ -78,5 +80,104 @@ class Asset extends Model
     public function borrowingHistories()
     {
         return $this->hasMany(BorrowingHistory::class)->orderBy('action_date', 'desc');
+    }
+
+    /**
+     * Get asset requests for this asset
+     */
+    public function assetRequests()
+    {
+        return $this->hasMany(AssetRequest::class);
+    }
+
+    /**
+     * Get all serial numbers as array
+     */
+    public function getSerialNumbersArray(): array
+    {
+        if (empty($this->serial_number)) {
+            return [];
+        }
+        return array_map('trim', explode(',', $this->serial_number));
+    }
+
+    /**
+     * Get list of borrowed/withdrawn serials from approved requests
+     */
+    public function getBorrowedSerials(): array
+    {
+        return $this->assetRequests()
+            ->whereIn('status', ['Approved', 'Received'])
+            ->whereNotNull('borrowed_serial')
+            ->pluck('borrowed_serial')
+            ->toArray();
+    }
+
+    /**
+     * Get serial statuses with requester info
+     */
+    public function getSerialStatuses(): array
+    {
+        $allSerials = $this->getSerialNumbersArray();
+        $requests = $this->assetRequests()
+            ->whereIn('status', ['Approved', 'Received'])
+            ->whereNotNull('borrowed_serial')
+            ->with('requester')
+            ->get()
+            ->keyBy('borrowed_serial');
+
+        $statuses = [];
+        foreach ($allSerials as $serial) {
+            if (isset($requests[$serial])) {
+                $request = $requests[$serial];
+                $statuses[] = [
+                    'serial' => $serial,
+                    'status' => $request->request_type === 'borrow' ? 'On Loan' : 'Withdrawn',
+                    'request_id' => $request->id,
+                    'request_type' => $request->request_type,
+                    'requester_name' => $request->requester_name ?? $request->requester?->name ?? 'Unknown',
+                    'requester_id' => $request->requester_id,
+                    'approved_at' => $request->approved_at,
+                ];
+            } else {
+                $statuses[] = [
+                    'serial' => $serial,
+                    'status' => 'Available',
+                    'request_id' => null,
+                    'request_type' => null,
+                    'requester_name' => null,
+                    'requester_id' => null,
+                    'approved_at' => null,
+                ];
+            }
+        }
+        return $statuses;
+    }
+
+    /**
+     * Get available serials (not borrowed/withdrawn)
+     */
+    public function getAvailableSerials(): array
+    {
+        $allSerials = $this->getSerialNumbersArray();
+        $borrowedSerials = $this->getBorrowedSerials();
+        return array_values(array_diff($allSerials, $borrowedSerials));
+    }
+
+    /**
+     * Get first available serial
+     */
+    public function getFirstAvailableSerial(): ?string
+    {
+        $available = $this->getAvailableSerials();
+        return $available[0] ?? null;
+    }
+
+    /**
+     * Get available quantity
+     */
+    public function getAvailableQuantity(): int
+    {
+        return count($this->getAvailableSerials());
     }
 }
