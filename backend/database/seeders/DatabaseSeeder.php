@@ -17,5 +17,6 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(ExampleDataSeeder::class);
         $this->call(IncidentTitleSeeder::class);
+        $this->call(BusinessHourSeeder::class);
     }
 }

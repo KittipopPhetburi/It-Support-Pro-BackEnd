@@ -51,18 +51,11 @@ class AssetController extends BaseCrudController
 
         if ($request->has('per_page')) {
             $paginated = $query->paginate((int) $request->get('per_page', 15));
-            $paginated->getCollection()->transform(function ($asset) {
-                $asset->available_quantity = $asset->getAvailableQuantity();
-                return $asset;
-            });
             return $paginated;
         }
 
         $assets = $query->get();
-        return $assets->map(function ($asset) {
-            $asset->available_quantity = $asset->getAvailableQuantity();
-            return $asset;
-        });
+        return $assets;
     }
 
     /**
@@ -78,13 +71,10 @@ class AssetController extends BaseCrudController
             'borrowingHistories.processor'
         ])->findOrFail($id);
         
-        // Add serial statuses with requester info
-        $response = $asset->toArray();
-        $response['serial_statuses'] = $asset->getSerialStatuses();
-        $response['available_quantity'] = $asset->getAvailableQuantity();
-        $response['available_serials'] = $asset->getAvailableSerials();
+        // Add extra available serials if needed (or could be added to appends)
+        $asset->available_serials = $asset->getAvailableSerials();
         
-        return response()->json($response);
+        return response()->json($asset);
     }
 
     /**

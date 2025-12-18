@@ -131,19 +131,31 @@ class AssetRequestController extends BaseCrudController
         if ($assetRequest->asset_id) {
             $asset = \App\Models\Asset::find($assetRequest->asset_id);
             if ($asset) {
-                // Get first available serial
-                $borrowedSerial = $asset->getFirstAvailableSerial();
-                
-                if (!$borrowedSerial) {
-                    return response()->json([
-                        'error' => 'ไม่มี Serial Number ที่ว่างสำหรับทรัพย์สินนี้',
-                    ], 422);
-                }
+                // Check if Asset has specific serial numbers/license keys to manage
+                $hasSerials = !empty($asset->serial_number);
 
-                // Determine new status based on request type
-                $newStatus = 'In Use'; // Default for Requisition and Replace
-                if ($assetRequest->request_type === 'Borrow') {
-                    $newStatus = 'On Loan';
+                if (!$hasSerials && $asset->category === 'Software') {
+                    // Logic for Software WITHOUT specific license keys (Count based)
+                    $availableLicenses = ($asset->total_licenses ?? 0) - ($asset->used_licenses ?? 0);
+                    if ($availableLicenses <= 0) {
+                        return response()->json([
+                            'error' => 'License สำหรับซอฟต์แวร์นี้หมดแล้ว (No available licenses)',
+                        ], 422);
+                    }
+                    // Increment used licenses
+                    $asset->used_licenses = ($asset->used_licenses ?? 0) + 1;
+                    
+                } else {
+                    // Logic for Assets WITH serials/keys (Hardware OR Software with keys)
+                    // Get first available serial (FIFO)
+                    $borrowedSerial = $asset->getFirstAvailableSerial();
+                    
+                    if (!$borrowedSerial) {
+                        return response()->json([
+                            'error' => 'ไม่มี Serial Number/License Key ที่ว่างสำหรับทรัพย์สินนี้ (No available items)',
+                        ], 422);
+                    }
+                    
                 }
 
                 // Get requester info from the request or the related user
@@ -205,7 +217,8 @@ class AssetRequestController extends BaseCrudController
         // Broadcast event
         event(new AssetRequestUpdated($assetRequest->fresh(), 'status-changed'));
 
-        return response()->json($assetRequest);
+        // Return updated request with asset loaded
+        return response()->json($assetRequest->load('asset'));
     }
 
     public function reject(AssetRequest $assetRequest)

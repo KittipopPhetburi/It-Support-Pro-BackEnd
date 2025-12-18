@@ -42,6 +42,11 @@ class Asset extends Model
         'qr_code',
     ];
 
+    protected $appends = [
+        'serial_statuses',
+        'available_quantity',
+    ];
+
     protected $casts = [
         'purchase_date' => 'date',
         'start_date' => 'date',
@@ -114,9 +119,9 @@ class Asset extends Model
     }
 
     /**
-     * Get serial statuses with requester info
+     * Get serial statuses with requester info (Accessor: serial_statuses)
      */
-    public function getSerialStatuses(): array
+    public function getSerialStatusesAttribute(): array
     {
         $allSerials = $this->getSerialNumbersArray();
         $requests = $this->assetRequests()
@@ -174,10 +179,21 @@ class Asset extends Model
     }
 
     /**
-     * Get available quantity
+     * Get available quantity (Accessor: available_quantity)
      */
-    public function getAvailableQuantity(): int
+    public function getAvailableQuantityAttribute(): int
     {
-        return count($this->getAvailableSerials());
+        // If we have serial numbers/license keys, count them (Hardware OR Software with keys)
+        if (!empty($this->serial_number)) {
+             return count($this->getAvailableSerials());
+        }
+
+        // Fallback for assets without keys (e.g. old software or consumables)
+        if ($this->category === 'Software') {
+            return max(0, ($this->total_licenses ?? 0) - ($this->used_licenses ?? 0));
+        }
+
+        // Default fallback (though hardware should always have serials ideally)
+        return max(0, ($this->quantity ?? 0) - ($this->used_licenses ?? 0));
     }
 }
