@@ -212,8 +212,16 @@ class IncidentController extends BaseCrudController
         // Auto-set closed_at when status changes to Closed
         if (isset($data['status']) && $data['status'] === 'Closed' && $oldStatus !== 'Closed') {
             $data['closed_at'] = now();
+        }
 
-            // Update Asset status back to previous status (or Available) when incident is closed
+        // Handle Asset Status Restoration and Maintenance History Creation
+        // Trigger this when status becomes Resolved OR Closed, AND it wasn't already Resolved/Closed
+        $isFinishing = isset($data['status']) && 
+                      ($data['status'] === 'Resolved' || $data['status'] === 'Closed') && 
+                      ($oldStatus !== 'Resolved' && $oldStatus !== 'Closed');
+
+        if ($isFinishing) {
+            // Update Asset status back to previous status (or Available)
             if ($model->asset_id) {
                 $asset = \App\Models\Asset::find($model->asset_id);
                 if ($asset) {
@@ -230,7 +238,7 @@ class IncidentController extends BaseCrudController
                 }
             }
 
-            // Create MaintenanceHistory record when incident is closed with repair details
+            // Create MaintenanceHistory record
             if ($model->asset_id && ($data['repair_details'] ?? $model->repair_details)) {
                 \App\Models\MaintenanceHistory::create([
                     'asset_id' => $model->asset_id,

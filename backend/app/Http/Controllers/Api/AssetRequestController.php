@@ -131,65 +131,71 @@ class AssetRequestController extends BaseCrudController
         if ($assetRequest->asset_id) {
             $asset = \App\Models\Asset::find($assetRequest->asset_id);
             if ($asset) {
-                // Get first available serial
-                $borrowedSerial = $asset->getFirstAvailableSerial();
-                
-                if (!$borrowedSerial) {
-                    return response()->json([
-                        'error' => 'ไม่มี Serial Number ที่ว่างสำหรับทรัพย์สินนี้',
-                    ], 422);
-                }
+                // Check if Asset has specific serial numbers/license keys to manage
+                $hasSerials = !empty($asset->serial_number);
 
-                // Determine new status based on request type
-                $newStatus = 'In Use'; // Default for Requisition and Replace
-                if ($assetRequest->request_type === 'Borrow') {
-                    $newStatus = 'On Loan';
-                }
-
-                // Get requester info from the request or the related user
-                $requesterName = $assetRequest->requester_name;
-                $requesterEmail = null;
-                $requesterPhone = null;
-
-                // Try to get email and phone from the requester user if exists
-                if ($assetRequest->requester_id) {
-                    $requester = \App\Models\User::find($assetRequest->requester_id);
-                    if ($requester) {
-                        $requesterName = $requesterName ?: $requester->name;
-                        $requesterEmail = $requester->email;
-                        $requesterPhone = $requester->phone ?? null;
+                if (!$hasSerials && $asset->category === 'Software') {
+                    // Logic for Software WITHOUT specific license keys (Count based)
+                    $availableLicenses = ($asset->total_licenses ?? 0) - ($asset->used_licenses ?? 0);
+                    if ($availableLicenses <= 0) {
+                        return response()->json([
+                            'error' => 'License สำหรับซอฟต์แวร์นี้หมดแล้ว (No available licenses)',
+                        ], 422);
                     }
+                    // Increment used licenses
+                    $asset->used_licenses = ($asset->used_licenses ?? 0) + 1;
+                    
+                } else {
+                    // Logic for Assets WITH serials/keys (Hardware OR Software with keys)
+                    // Get first available serial (FIFO)
+                    $borrowedSerial = $asset->getFirstAvailableSerial();
+                    
+                    if (!$borrowedSerial) {
+                        return response()->json([
+                            'error' => 'ไม่มี Serial Number/License Key ที่ว่างสำหรับทรัพย์สินนี้ (No available items)',
+                        ], 422);
+                    }
+                    
                 }
 
-                // Check if this will use the last available serial
-                $availableAfterThis = $asset->getAvailableQuantity() - 1;
+                // Update request FIRST to ensure availability calculation is accurate
+                $assetRequest->update([
+                    'status' => 'Approved',
+                    'approved_at' => now(),
+                    'approved_by' => auth()->user()->name,
+                    'borrowed_serial' => $borrowedSerial,
+                ]);
+
+                // Determine new status and update Asset
+                // Refresh asset to ensure we get latest availability from DB (including the just-approved request)
+                $asset = $asset->fresh(); 
+                $availableQty = $asset->available_quantity;
                 
-                // Only update asset status if all serials are now used
-                if ($availableAfterThis <= 0) {
-                    $asset->update([
-                        'status' => $newStatus,
-                        'assigned_to' => $requesterName,
-                        'assigned_to_email' => $requesterEmail,
-                        'assigned_to_phone' => $requesterPhone,
-                        'assigned_to_id' => $assetRequest->requester_id,
-                    ]);
+                // If this was the last item, mark as In Use / Out of Stock
+                if ($availableQty <= 0) {
+                     $asset->status = 'In Use';  
+                } else {
+                     $asset->status = 'Available';
                 }
-                // If still has available serials, keep status as Available
+                
+                // For hardware, if we assigned a serial, we might want to track who holds it, 
+                // but since 'assigned_to' on Asset is single-value, for multi-serial we rely on Request history.
+                // However, if quantity=1 (single asset), we can still update assigned_to for backward compatibility.
+                if ($asset->quantity == 1) {
+                     $requesterName = $assetRequest->requester_name ?? \App\Models\User::find($assetRequest->requester_id)?->name;
+                     $asset->assigned_to = $requesterName;
+                     $asset->assigned_to_id = $assetRequest->requester_id;
+                }
+
+                $asset->save();
             }
         }
-
-        // Update request with borrowed serial
-        $assetRequest->update([
-            'status' => 'Approved',
-            'approved_at' => now(),
-            'approved_by' => auth()->user()->name,
-            'borrowed_serial' => $borrowedSerial,
-        ]);
 
         // Broadcast event
         event(new AssetRequestUpdated($assetRequest->fresh(), 'status-changed'));
 
-        return response()->json($assetRequest);
+        // Return updated request with asset loaded
+        return response()->json($assetRequest->load('asset'));
     }
 
     public function reject(AssetRequest $assetRequest)
