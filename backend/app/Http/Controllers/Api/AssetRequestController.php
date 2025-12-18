@@ -186,6 +186,22 @@ class AssetRequestController extends BaseCrudController
             'borrowed_serial' => $borrowedSerial,
         ]);
 
+        // Create BorrowingHistory record
+        if ($assetRequest->asset_id && $borrowedSerial) {
+            \App\Models\BorrowingHistory::create([
+                'asset_id' => $assetRequest->asset_id,
+                'user_id' => $assetRequest->requester_id,
+                'user_name' => $assetRequest->requester_name ?? ($assetRequest->requester ? $assetRequest->requester->name : null),
+                'action_type' => strtolower($assetRequest->request_type), // borrow, requisition
+                'request_id' => $assetRequest->id,
+                'action_date' => now(),
+                'expected_return_date' => $assetRequest->request_type === 'Borrow' ? now()->addDays(7) : null,
+                'notes' => "Serial: {$borrowedSerial} - " . ($assetRequest->justification ?? $assetRequest->reason ?? 'อนุมัติคำขอ'),
+                'status' => 'active',
+                'processed_by' => auth()->user()->id,
+            ]);
+        }
+
         // Broadcast event
         event(new AssetRequestUpdated($assetRequest->fresh(), 'status-changed'));
 

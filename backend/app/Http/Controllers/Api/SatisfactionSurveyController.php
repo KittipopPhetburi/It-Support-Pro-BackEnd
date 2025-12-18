@@ -40,6 +40,45 @@ class SatisfactionSurveyController extends BaseCrudController
             $incident->satisfaction_comment = $data['feedback'] ?? null;
             $incident->satisfaction_date = now();
             $incident->save();
+
+            // Update Asset status back to previous status (or Available) when incident is closed
+            if ($incident->asset_id) {
+                $asset = \App\Models\Asset::find($incident->asset_id);
+                if ($asset) {
+                    // Restore previous status if saved, otherwise default to Available
+                    $previousStatus = $incident->previous_asset_status;
+                    if ($previousStatus && $previousStatus !== 'Maintenance') {
+                        $asset->update(['status' => $previousStatus]);
+                    } else {
+                        // Default to Available if no previous status was saved
+                        $asset->update(['status' => 'Available']);
+                    }
+                    
+                    // Broadcast asset updated event
+                    broadcast(new \App\Events\AssetUpdated($asset->fresh(), 'updated'))->toOthers();
+                }
+            }
+
+            // Create MaintenanceHistory record when incident is closed with an asset
+            if ($incident->asset_id) {
+                \App\Models\MaintenanceHistory::create([
+                    'asset_id' => $incident->asset_id,
+                    'incident_id' => $incident->id,
+                    'title' => $incident->title,
+                    'description' => $incident->repair_details ?: $incident->description ?: 'ซ่อมแซมตาม incident',
+                    'repair_status' => $incident->repair_status ?? 'Completed',
+                    'technician_id' => $incident->assignee_id,
+                    'technician_name' => $incident->assignee ? $incident->assignee->name : null,
+                    'start_date' => $incident->start_repair_date ?? $incident->created_at,
+                    'completion_date' => $incident->completion_date ?? now(),
+                    'has_cost' => $incident->has_additional_cost ?? false,
+                    'cost' => $incident->additional_cost,
+                    'replacement_equipment' => $incident->replacement_equipment,
+                ]);
+            }
+
+            // Broadcast incident updated event
+            broadcast(new \App\Events\IncidentUpdated($incident, 'updated'))->toOthers();
         }
         
         return response()->json($survey, 201);

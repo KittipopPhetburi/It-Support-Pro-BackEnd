@@ -213,34 +213,52 @@ class IncidentController extends BaseCrudController
         if (isset($data['status']) && $data['status'] === 'Closed' && $oldStatus !== 'Closed') {
             $data['closed_at'] = now();
 
+            \Log::info('=== INCIDENT CLOSE DEBUG ===');
+            \Log::info('Incident ID: ' . $model->id);
+            \Log::info('Old Status: ' . $oldStatus);
+            \Log::info('New Status: ' . $data['status']);
+            \Log::info('Asset ID: ' . ($model->asset_id ?? 'NULL'));
+            \Log::info('Previous Asset Status saved: ' . ($model->previous_asset_status ?? 'NULL'));
+
             // Update Asset status back to previous status (or Available) when incident is closed
             if ($model->asset_id) {
                 $asset = \App\Models\Asset::find($model->asset_id);
                 if ($asset) {
-                    // Restore previous status if it was In Use or On Loan, otherwise set to Available
+                    \Log::info('Asset found: ' . $asset->name . ', Current status: ' . $asset->status);
+                    
+                    // Restore previous status if saved, otherwise default to Available
                     $previousStatus = $model->previous_asset_status;
-                    if (in_array($previousStatus, ['In Use', 'On Loan'])) {
+                    if ($previousStatus && $previousStatus !== 'Maintenance') {
+                        \Log::info('Restoring to previous status: ' . $previousStatus);
                         $asset->update(['status' => $previousStatus]);
                     } else {
+                        // Default to Available if no previous status was saved
+                        \Log::info('No previous status, defaulting to Available');
                         $asset->update(['status' => 'Available']);
                     }
                     
+                    \Log::info('Asset status after update: ' . $asset->fresh()->status);
+                    
                     // Broadcast asset updated event
                     broadcast(new AssetUpdated($asset->fresh(), 'updated'))->toOthers();
+                } else {
+                    \Log::warning('Asset not found for ID: ' . $model->asset_id);
                 }
+            } else {
+                \Log::info('No asset_id linked to this incident');
             }
 
-            // Create MaintenanceHistory record when incident is closed with repair details
-            if ($model->asset_id && ($data['repair_details'] ?? $model->repair_details)) {
+            // Create MaintenanceHistory record when incident is closed with an asset
+            if ($model->asset_id) {
                 \App\Models\MaintenanceHistory::create([
                     'asset_id' => $model->asset_id,
                     'incident_id' => $model->id,
                     'title' => $model->title,
-                    'description' => $data['repair_details'] ?? $model->repair_details,
+                    'description' => $data['repair_details'] ?? $model->repair_details ?: $model->description ?: 'ซ่อมแซมตาม incident',
                     'repair_status' => $data['repair_status'] ?? $model->repair_status ?? 'Completed',
                     'technician_id' => $model->assignee_id,
                     'technician_name' => $model->assignee ? $model->assignee->name : null,
-                    'start_date' => $model->start_repair_date,
+                    'start_date' => $model->start_repair_date ?? $model->created_at,
                     'completion_date' => $data['completion_date'] ?? $model->completion_date ?? now(),
                     'has_cost' => $data['has_additional_cost'] ?? $model->has_additional_cost ?? false,
                     'cost' => $data['additional_cost'] ?? $model->additional_cost,
