@@ -28,7 +28,8 @@ use App\Http\Controllers\Api\{
     NotificationController,
     DashboardController,
     RolePermissionController,
-    RoleController
+    RoleController,
+    UserPermissionController
 };
 
 /*
@@ -156,11 +157,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/notifications/clear-all', [NotificationController::class, 'clearAll']);
     Route::apiResource('notifications', NotificationController::class);
 
-    // Role permissions
+    // Role management (CRUD)
     Route::get('/roles', [RoleController::class, 'index']);
+    Route::post('/roles', [RoleController::class, 'store']);
+    Route::put('/roles/{role}', [RoleController::class, 'update']);
+    Route::delete('/roles/{role}', [RoleController::class, 'destroy']);
+    
+    // Role permissions
     Route::get('/roles/{role}/permissions', [RolePermissionController::class, 'index']);
     Route::put('/roles/{role}/permissions', [RolePermissionController::class, 'update']);
     Route::post('/roles/{role}/permissions/reset-default', [RolePermissionController::class, 'resetToDefault']);
+
+    // User permissions (individual override)
+    Route::get('/users/{user}/permissions', [UserPermissionController::class, 'index']);
+    Route::put('/users/{user}/permissions', [UserPermissionController::class, 'update']);
+    Route::post('/users/{user}/permissions/reset', [UserPermissionController::class, 'reset']);
+
 
     // Satisfaction Surveys
     Route::get('/satisfaction-surveys/pending', [SatisfactionSurveyController::class, 'pending']);

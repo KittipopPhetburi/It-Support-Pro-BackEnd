@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
+use App\Models\UserMenuPermission;
+
 class AuthController extends Controller
 {
     /**
@@ -82,7 +84,7 @@ class AuthController extends Controller
 
         // Load role permissions
         $user->load(['branch', 'department']);
-        $user = $this->attachRolePermissions($user);
+        $user = $this->attachMergedPermissions($user);
 
         return response()->json([
             'message' => 'เข้าสู่ระบบสำเร็จ',
@@ -110,7 +112,7 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         $user = $request->user()->load(['branch', 'department']);
-        $user = $this->attachRolePermissions($user);
+        $user = $this->attachMergedPermissions($user);
         
         return response()->json([
             'user' => $user,
@@ -145,38 +147,46 @@ class AuthController extends Controller
     }
 
     /**
-     * Helper: Attach role permissions to user
+     * Helper: Attach merged permissions (role + user override) to user
+     * User-specific permissions override role permissions
      */
-    private function attachRolePermissions(User $user)
+    private function attachMergedPermissions(User $user)
     {
         $role = Role::where('name', $user->role)->first();
+        $menus = Menu::orderBy('group')->orderBy('sort_order')->get();
         
-        if ($role) {
-            $permissions = RoleMenuPermission::where('role_id', $role->id)
-                ->with('menu')
-                ->get()
-                ->filter(function ($perm) {
-                    return $perm->menu !== null;
-                })
-                ->map(function ($perm) {
-                    return [
-                        'menu_id' => $perm->menu_id,
-                        'menu_key' => $perm->menu->key,
-                        'menu_name' => $perm->menu->name,
-                        'menu_group' => $perm->menu->group,
-                        'can_view' => (bool) $perm->can_view,
-                        'can_create' => (bool) $perm->can_create,
-                        'can_update' => (bool) $perm->can_update,
-                        'can_delete' => (bool) $perm->can_delete,
-                    ];
-                })
-                ->values();
+        // Get role permissions (base)
+        $rolePermissions = $role 
+            ? RoleMenuPermission::where('role_id', $role->id)->get()->keyBy('menu_id')
+            : collect();
+        
+        // Get user-specific permissions (override)
+        $userPermissions = UserMenuPermission::where('user_id', $user->id)->get()->keyBy('menu_id');
+        
+        // Merge: user permissions override role permissions
+        $mergedPermissions = $menus->map(function ($menu) use ($rolePermissions, $userPermissions) {
+            $rolePerm = $rolePermissions->get($menu->id);
+            $userPerm = $userPermissions->get($menu->id);
             
-            $user->role_permissions = $permissions;
-        } else {
-            $user->role_permissions = [];
-        }
+            // User permission overrides role permission if exists
+            $hasUserOverride = $userPerm !== null;
+            
+            return [
+                'menu_id' => $menu->id,
+                'menu_key' => $menu->key,
+                'menu_name' => $menu->name,
+                'menu_group' => $menu->group,
+                'can_view' => $hasUserOverride ? (bool) $userPerm->can_view : (bool) ($rolePerm?->can_view ?? false),
+                'can_create' => $hasUserOverride ? (bool) $userPerm->can_create : (bool) ($rolePerm?->can_create ?? false),
+                'can_update' => $hasUserOverride ? (bool) $userPerm->can_update : (bool) ($rolePerm?->can_update ?? false),
+                'can_delete' => $hasUserOverride ? (bool) $userPerm->can_delete : (bool) ($rolePerm?->can_delete ?? false),
+                'has_user_override' => $hasUserOverride,
+            ];
+        })->values();
+        
+        $user->role_permissions = $mergedPermissions;
         
         return $user;
     }
 }
+
