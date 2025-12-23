@@ -29,8 +29,10 @@ use App\Http\Controllers\Api\{
     DashboardController,
     RolePermissionController,
     RoleController,
-    UserPermissionController
+    UserPermissionController,
+    PmScheduleController
 };
+
 
 /*
 |--------------------------------------------------------------------------
@@ -215,6 +217,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Organization Notifications
     Route::post('/organization-notifications/{id}/test/{channel}', [OrganizationNotificationController::class, 'testNotification']);
     Route::apiResource('organization-notifications', OrganizationNotificationController::class);
+
+    // Preventive Maintenance (PM)
+    Route::get('/pm-schedules/statistics', [PmScheduleController::class, 'statistics']);
+    Route::post('/pm-schedules/{pmSchedule}/execute', [PmScheduleController::class, 'execute']);
+    Route::apiResource('pm-schedules', PmScheduleController::class);
 
     // Dashboard
     Route::prefix('dashboard')->group(function () {
