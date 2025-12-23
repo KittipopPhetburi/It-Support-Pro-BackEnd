@@ -163,6 +163,7 @@ class RolePermissionController extends Controller
                     'asset_request' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
                     'other_request' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
                     'satisfaction_kpi' => ['view' => true],
+                    'preventive_maintenance' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
                 ]);
                 break;
 
@@ -179,6 +180,7 @@ class RolePermissionController extends Controller
                     'satisfaction_kpi' => ['view' => true],
                     'branch_management' => ['view' => true],
                     'sub_contract_management' => ['view' => true, 'create' => true, 'update' => true],
+                    'preventive_maintenance' => ['view' => true, 'create' => true, 'update' => true, 'delete' => true],
                 ]);
                 break;
 
