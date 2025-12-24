@@ -30,7 +30,8 @@ use App\Http\Controllers\Api\{
     RolePermissionController,
     RoleController,
     UserPermissionController,
-    PmScheduleController
+    PmScheduleController,
+    PmProjectController
 };
 
 
@@ -215,6 +216,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('system-settings', SystemSettingController::class);
 
     // Organization Notifications
+    Route::post('/organization-notifications/initialize', [OrganizationNotificationController::class, 'initialize']);
     Route::post('/organization-notifications/{id}/test/{channel}', [OrganizationNotificationController::class, 'testNotification']);
     Route::apiResource('organization-notifications', OrganizationNotificationController::class);
 
@@ -222,6 +224,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pm-schedules/statistics', [PmScheduleController::class, 'statistics']);
     Route::post('/pm-schedules/{pmSchedule}/execute', [PmScheduleController::class, 'execute']);
     Route::apiResource('pm-schedules', PmScheduleController::class);
+
+    // PM Projects
+    Route::apiResource('pm-projects', PmProjectController::class);
 
     // Dashboard
     Route::prefix('dashboard')->group(function () {

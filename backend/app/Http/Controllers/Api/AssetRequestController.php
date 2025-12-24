@@ -13,7 +13,7 @@ class AssetRequestController extends BaseCrudController
         'requester_id' => 'nullable|integer',
         'requester_name' => 'nullable|string|max:255',
         'request_type' => 'nullable|string|in:Requisition,Borrow,Replace',
-        'asset_type' => 'required|string|max:255',
+        'asset_type' => 'nullable|string|max:255', // Changed to nullable for partial updates
         'asset_id' => 'nullable|integer',
         'quantity' => 'nullable|integer|min:1',
         'justification' => 'nullable|string',
@@ -30,6 +30,12 @@ class AssetRequestController extends BaseCrudController
         'rejected_by' => 'nullable|string|max:255',
         'reject_reason' => 'nullable|string',
         'received_at' => 'nullable|date',
+        'due_date' => 'nullable|date',
+        // Return fields
+        'is_returned' => 'nullable|boolean',
+        'return_date' => 'nullable|date',
+        'return_condition' => 'nullable|string|in:Normal,Damaged,Lost',
+        'return_notes' => 'nullable|string',
     ];
 
     public function index(\Illuminate\Http\Request $request)
@@ -174,10 +180,11 @@ class AssetRequestController extends BaseCrudController
                 }
 
                 // Check if this will use the last available serial
-                $availableAfterThis = $asset->getAvailableQuantity() - 1;
+                $availableAfterThis = $asset->available_quantity - 1;
                 
                 // Only update asset status if all serials are now used
                 if ($availableAfterThis <= 0) {
+                    $newStatus = 'In Use'; // Define the status
                     $asset->update([
                         'status' => $newStatus,
                         'assigned_to' => $requesterName,
@@ -190,13 +197,20 @@ class AssetRequestController extends BaseCrudController
             }
         }
 
-        // Update request with borrowed serial
-        $assetRequest->update([
+        // Update request with borrowed serial and borrow date
+        $updateData = [
             'status' => 'Approved',
             'approved_at' => now(),
             'approved_by' => auth()->user()->name,
             'borrowed_serial' => $borrowedSerial,
-        ]);
+        ];
+
+        // Set borrow_date for Borrow type requests
+        if ($assetRequest->request_type === 'Borrow') {
+            $updateData['borrow_date'] = now();
+        }
+
+        $assetRequest->update($updateData);
 
         // Create BorrowingHistory record
         if ($assetRequest->asset_id && $borrowedSerial) {

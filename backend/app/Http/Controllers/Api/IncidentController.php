@@ -6,6 +6,7 @@ use App\Models\Incident;
 use App\Events\NewSurveyAvailable;
 use App\Events\IncidentUpdated;
 use App\Events\AssetUpdated;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class IncidentController extends BaseCrudController
@@ -173,7 +174,7 @@ class IncidentController extends BaseCrudController
         }
         
         // Load the assignee relationship to return the technician name
-        $model->load('assignee');
+        $model->load(['assignee', 'requester']);
         
         // Add technician name to response for easier frontend consumption
         $response = $model->toArray();
@@ -188,6 +189,25 @@ class IncidentController extends BaseCrudController
 
         // Broadcast new incident created event
         broadcast(new IncidentUpdated($model, 'created'))->toOthers();
+
+        // Send notification to configured channels (Email, Telegram, Line)
+        try {
+            $notificationService = new NotificationService();
+            $notificationService->sendNotification(
+                $model->organization ?? '',
+                'incident',
+                [
+                    'title' => $model->title,
+                    'priority' => $model->priority,
+                    'organization' => $model->organization ?? 'ไม่ระบุ',
+                    'requester_name' => $model->requester ? $model->requester->name : 'ไม่ระบุ',
+                    'asset_name' => $model->asset_name ?? '',
+                    'description' => $model->description ?? '',
+                ]
+            );
+        } catch (\Exception $e) {
+            \Log::error('Failed to send incident notification: ' . $e->getMessage());
+        }
 
         return response()->json($response, 201);
     }

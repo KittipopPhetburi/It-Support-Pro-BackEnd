@@ -32,6 +32,12 @@ class AssetRequest extends Model
         'rejected_by',
         'reject_reason',
         'received_at',
+        'due_date',
+        'borrow_date',
+        'is_returned',
+        'return_date',
+        'return_condition',
+        'return_notes',
     ];
 
     protected $casts = [
@@ -39,6 +45,10 @@ class AssetRequest extends Model
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
         'received_at' => 'datetime',
+        'due_date' => 'datetime',
+        'borrow_date' => 'datetime',
+        'return_date' => 'datetime',
+        'is_returned' => 'boolean',
     ];
 
     public function requester()

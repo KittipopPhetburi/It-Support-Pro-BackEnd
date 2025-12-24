@@ -12,6 +12,52 @@ use Illuminate\Support\Facades\Config;
 
 class OrganizationNotificationController extends Controller
 {
+    public function initialize(Request $request)
+    {
+        $request->validate([
+            'organization_name' => 'required|string',
+        ]);
+
+        $orgName = $request->organization_name;
+        $types = ['incident', 'requisition', 'borrow', 'replace'];
+        $createdNotifications = [];
+
+        foreach ($types as $type) {
+            $notification = OrganizationNotification::firstOrCreate(
+                [
+                    'organization_name' => $orgName,
+                    'request_type' => $type
+                ],
+                [
+                    'email_enabled' => false,
+                    'telegram_enabled' => false,
+                    'line_enabled' => false
+                ]
+            );
+            $createdNotifications[] = $notification;
+        }
+
+        $formattedData = collect($createdNotifications)->map(function ($notif) {
+            return [
+                'id' => (string) $notif->id,
+                'organizationName' => $notif->organization_name,
+                'requestType' => $notif->request_type,
+                'emailEnabled' => (boolean) $notif->email_enabled,
+                'emailRecipients' => $notif->email_recipients ?? '',
+                'telegramEnabled' => (boolean) $notif->telegram_enabled,
+                'telegramToken' => $notif->telegram_token ?? '',
+                'telegramChatId' => $notif->telegram_chat_id ?? '',
+                'lineEnabled' => (boolean) $notif->line_enabled,
+                'lineToken' => $notif->line_token ?? '',
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $formattedData
+        ]);
+    }
+
     public function index()
     {
         $notifications = OrganizationNotification::all()->map(function ($notif) {
@@ -139,7 +185,7 @@ class OrganizationNotificationController extends Controller
     private function testTelegram($notification)
     {
         if (!$notification->telegram_enabled || !$notification->telegram_token || !$notification->telegram_chat_id) {
-            return response()->json(['success' => false, 'message' => 'Telegram not configured'], 400);
+            return response()->json(['success' => false, 'message' => 'Telegram not configured or not saved. Please click outside the input field to save first.'], 400);
         }
 
         $message = "🔔 *Test Notification*\n\n" .
@@ -147,17 +193,21 @@ class OrganizationNotificationController extends Controller
                    "Request Type: {$notification->request_type}\n\n" .
                    "If you received this message, your Telegram notification is configured correctly.";
 
-        $response = Http::post("https://api.telegram.org/bot{$notification->telegram_token}/sendMessage", [
-            'chat_id' => $notification->telegram_chat_id,
-            'text' => $message,
-            'parse_mode' => 'Markdown'
-        ]);
+        try {
+            $response = Http::withoutVerifying()->post("https://api.telegram.org/bot{$notification->telegram_token}/sendMessage", [
+                'chat_id' => $notification->telegram_chat_id,
+                'text' => $message,
+                'parse_mode' => 'Markdown'
+            ]);
 
-        if ($response->successful()) {
-            return response()->json(['success' => true, 'message' => 'Test Telegram message sent successfully']);
+            if ($response->successful()) {
+                return response()->json(['success' => true, 'message' => 'Test Telegram message sent successfully']);
+            }
+
+            return response()->json(['success' => false, 'message' => 'Telegram API error: ' . $response->body()], 500);
+        } catch (\Exception $e) {
+             return response()->json(['success' => false, 'message' => 'Connection error: ' . $e->getMessage()], 500);
         }
-
-        return response()->json(['success' => false, 'message' => 'Telegram API error'], 500);
     }
 
     private function testLine($notification)
