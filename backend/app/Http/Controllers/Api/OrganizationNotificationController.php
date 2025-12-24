@@ -131,8 +131,8 @@ class OrganizationNotificationController extends Controller
 
     private function testEmail($notification)
     {
-        if (!$notification->email_enabled || !$notification->email_recipients) {
-            return response()->json(['success' => false, 'message' => 'Email not configured'], 400);
+        if (!$notification->email_recipients) {
+            return response()->json(['success' => false, 'message' => 'Email recipients not configured'], 400);
         }
 
         // Get email settings from system_settings table
@@ -184,8 +184,8 @@ class OrganizationNotificationController extends Controller
 
     private function testTelegram($notification)
     {
-        if (!$notification->telegram_enabled || !$notification->telegram_token || !$notification->telegram_chat_id) {
-            return response()->json(['success' => false, 'message' => 'Telegram not configured or not saved. Please click outside the input field to save first.'], 400);
+        if (!$notification->telegram_token || !$notification->telegram_chat_id) {
+            return response()->json(['success' => false, 'message' => 'Telegram credentials not configured. Please save credentials first.'], 400);
         }
 
         $message = "🔔 *Test Notification*\n\n" .
@@ -212,8 +212,8 @@ class OrganizationNotificationController extends Controller
 
     private function testLine($notification)
     {
-        if (!$notification->line_enabled || !$notification->line_token) {
-            return response()->json(['success' => false, 'message' => 'Line not configured'], 400);
+        if (!$notification->line_token) {
+            return response()->json(['success' => false, 'message' => 'Line token not configured'], 400);
         }
 
         $message = "\n🔔 Test Notification\n\n" .
@@ -265,9 +265,10 @@ class OrganizationNotificationController extends Controller
                 return response()->json(['success' => true, 'message' => 'Test Line message sent successfully']);
             }
             
+            $decodedResult = json_decode($result, true);
             return response()->json([
                 'success' => false, 
-                'message' => 'Line API error: ' . ($response['message'] ?? 'Unknown error')
+                'message' => 'Line API error: ' . ($decodedResult['message'] ?? 'Unknown error')
             ], 500);
             
         } catch (\Exception $e) {

@@ -32,8 +32,6 @@ use App\Http\Controllers\Api\{
     UserPermissionController,
     PmScheduleController,
     PmProjectController
-    PmScheduleController,
-    PmProjectController
 };
 
 
