@@ -132,54 +132,94 @@ class OrganizationNotificationController extends Controller
     private function testEmail($notification)
     {
         if (!$notification->email_recipients) {
-            return response()->json(['success' => false, 'message' => 'Email recipients not configured'], 400);
+            return response()->json(['success' => false, 'message' => 'กรุณากรอกอีเมลผู้รับก่อน'], 400);
         }
 
-        // Get email settings from system_settings table
-        $settings = SystemSetting::where('category', 'Email')
-            ->get()
-            ->keyBy('key');
+        try {
+            // Get email settings from system_settings table
+            $settings = SystemSetting::where('category', 'Email')
+                ->get()
+                ->keyBy('key');
 
-        $mailDriver = $settings['mail_driver']->value ?? 'log';
-
-        // Configure mail driver
-        Config::set('mail.default', $mailDriver);
-
-        if ($mailDriver === 'smtp') {
-            // Configure mail settings dynamically
-            Config::set('mail.mailers.smtp', [
-                'transport' => 'smtp',
-                'host' => $settings['smtp_host']->value ?? 'smtp.gmail.com',
-                'port' => $settings['smtp_port']->value ?? 587,
-                'encryption' => $settings['smtp_encryption']->value ?? 'tls',
-                'username' => $settings['smtp_username']->value ?? '',
-                'password' => $settings['smtp_password']->value ?? '',
-            ]);
-        }
-
-        Config::set('mail.from', [
-            'address' => $settings['mail_from_address']->value ?? 'noreply@itsupport.com',
-            'name' => $settings['mail_from_name']->value ?? 'IT Support System',
-        ]);
-
-        $recipients = array_map('trim', explode(',', $notification->email_recipients));
-        
-        Mail::raw(
-            "This is a test notification from IT Support System.\n\n" .
-            "Organization: {$notification->organization_name}\n" .
-            "Request Type: {$notification->request_type}\n\n" .
-            "If you received this email, your email notification is configured correctly.",
-            function ($message) use ($recipients, $notification, $settings) {
-                $message->to($recipients)
-                        ->subject("Test Notification - {$notification->organization_name}")
-                        ->from(
-                            $settings['mail_from_address']->value ?? 'noreply@itsupport.com',
-                            $settings['mail_from_name']->value ?? 'IT Support System'
-                        );
+            // Check if we have any settings
+            if ($settings->isEmpty()) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'ยังไม่ได้ตั้งค่า Email กรุณาไปที่แท็บ Email เพื่อกำหนด SMTP settings'
+                ], 400);
             }
-        );
 
-        return response()->json(['success' => true, 'message' => 'Test email sent successfully']);
+            $mailDriver = $settings['mail_driver']->value ?? 'smtp';
+            $smtpUsername = $settings['smtp_username']->value ?? '';
+            $smtpPassword = $settings['smtp_password']->value ?? '';
+
+            // Check SMTP credentials
+            if ($mailDriver === 'smtp' && (empty($smtpUsername) || empty($smtpPassword))) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'กรุณากำหนด SMTP Username และ Password ในแท็บ Email ก่อนทดสอบ'
+                ], 400);
+            }
+
+            // Configure mail driver
+            Config::set('mail.default', $mailDriver);
+
+            if ($mailDriver === 'smtp') {
+                // Configure mail settings dynamically
+                Config::set('mail.mailers.smtp', [
+                    'transport' => 'smtp',
+                    'host' => $settings['smtp_host']->value ?? 'smtp.gmail.com',
+                    'port' => (int)($settings['smtp_port']->value ?? 587),
+                    'encryption' => $settings['smtp_encryption']->value ?? 'tls',
+                    'username' => $smtpUsername,
+                    'password' => $smtpPassword,
+                    'verify_peer' => false, // Disable SSL verification for development
+                ]);
+            }
+
+            $fromAddress = $settings['mail_from_address']->value ?? $smtpUsername;
+            $fromName = $settings['mail_from_name']->value ?? 'IT Support System';
+
+            Config::set('mail.from', [
+                'address' => $fromAddress,
+                'name' => $fromName,
+            ]);
+
+            $recipients = array_map('trim', explode(',', $notification->email_recipients));
+            
+            \Log::info('Sending test email', [
+                'to' => $recipients,
+                'driver' => $mailDriver,
+                'host' => $settings['smtp_host']->value ?? 'smtp.gmail.com',
+            ]);
+
+            Mail::raw(
+                "นี่คือข้อความทดสอบจากระบบ IT Support System\n\n" .
+                "สาขา: {$notification->organization_name}\n" .
+                "ประเภท: {$notification->request_type}\n\n" .
+                "หากคุณได้รับอีเมลนี้ แสดงว่าการตั้งค่าอีเมลถูกต้อง",
+                function ($message) use ($recipients, $notification, $fromAddress, $fromName) {
+                    $message->to($recipients)
+                            ->subject("ทดสอบการแจ้งเตือน - {$notification->organization_name}")
+                            ->from($fromAddress, $fromName);
+                }
+            );
+
+            return response()->json(['success' => true, 'message' => 'ส่งอีเมลทดสอบสำเร็จ กรุณาตรวจสอบกล่องจดหมาย']);
+        } catch (\Exception $e) {
+            \Log::error('Email test failed: ' . $e->getMessage());
+            
+            $errorMsg = $e->getMessage();
+            
+            // Translate common errors
+            if (strpos($errorMsg, 'authentication') !== false || strpos($errorMsg, 'AUTHENTICATION') !== false) {
+                $errorMsg = 'การยืนยันตัวตนล้มเหลว กรุณาตรวจสอบ SMTP Username/Password (สำหรับ Gmail ใช้ App Password)';
+            } elseif (strpos($errorMsg, 'Connection') !== false || strpos($errorMsg, 'connection') !== false) {
+                $errorMsg = 'ไม่สามารถเชื่อมต่อ SMTP Server ได้ กรุณาตรวจสอบ Host และ Port';
+            }
+            
+            return response()->json(['success' => false, 'message' => $errorMsg], 500);
+        }
     }
 
     private function testTelegram($notification)
