@@ -30,7 +30,8 @@ use App\Http\Controllers\Api\{
     RolePermissionController,
     RoleController,
     UserPermissionController,
-    PmScheduleController
+    PmScheduleController,
+    PmProjectController
 };
 
 
@@ -222,6 +223,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pm-schedules/statistics', [PmScheduleController::class, 'statistics']);
     Route::post('/pm-schedules/{pmSchedule}/execute', [PmScheduleController::class, 'execute']);
     Route::apiResource('pm-schedules', PmScheduleController::class);
+
+    // PM Projects
+    Route::get('/pm-projects/statistics', [PmProjectController::class, 'statistics']);
+    Route::apiResource('pm-projects', PmProjectController::class);
 
     // Dashboard
     Route::prefix('dashboard')->group(function () {
