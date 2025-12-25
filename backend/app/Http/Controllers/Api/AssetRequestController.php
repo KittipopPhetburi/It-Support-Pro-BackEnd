@@ -184,7 +184,8 @@ class AssetRequestController extends BaseCrudController
                 
                 // Only update asset status if all serials are now used
                 if ($availableAfterThis <= 0) {
-                    $newStatus = 'In Use'; // Define the status
+                    // Use 'On Loan' for Borrow, 'In Use' for Requisition/Replace
+                    $newStatus = $assetRequest->request_type === 'Borrow' ? 'On Loan' : 'In Use';
                     $asset->update([
                         'status' => $newStatus,
                         'assigned_to' => $requesterName,
