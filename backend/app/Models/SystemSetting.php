@@ -13,6 +13,7 @@ class SystemSetting extends Model
         'category',
         'key',
         'value',
+        'type',
         'description',
     ];
 }
