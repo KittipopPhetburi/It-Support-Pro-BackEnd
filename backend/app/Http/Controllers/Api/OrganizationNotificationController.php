@@ -110,17 +110,17 @@ class OrganizationNotificationController extends Controller
         ]);
     }
 
-    public function testNotification($id, $channel)
+    public function testNotification(Request $request, $id, $channel)
     {
         $notification = OrganizationNotification::findOrFail($id);
 
         try {
             if ($channel === 'email') {
-                return $this->testEmail($notification);
+                return $this->testEmail($notification, $request->all());
             } elseif ($channel === 'telegram') {
-                return $this->testTelegram($notification);
+                return $this->testTelegram($notification, $request->all());
             } elseif ($channel === 'line') {
-                return $this->testLine($notification);
+                return $this->testLine($notification, $request->all());
             }
 
             return response()->json(['success' => false, 'message' => 'Invalid channel'], 400);
@@ -222,10 +222,17 @@ class OrganizationNotificationController extends Controller
         }
     }
 
-    private function testTelegram($notification)
+    private function testTelegram($notification, $data = [])
     {
-        if (!$notification->telegram_token || !$notification->telegram_chat_id) {
-            return response()->json(['success' => false, 'message' => 'Telegram credentials not configured. Please save credentials first.'], 400);
+        // Use preg_replace to remove ALL whitespace/invisible characters
+        $rawToken = $data['telegramToken'] ?? $notification->telegram_token;
+        $rawChatId = $data['telegramChatId'] ?? $notification->telegram_chat_id;
+
+        $token = preg_replace('/\s+/u', '', $rawToken ?? '');
+        $chatId = preg_replace('/\s+/u', '', $rawChatId ?? '');
+
+        if (!$token || !$chatId) {
+            return response()->json(['success' => false, 'message' => 'Telegram credentials not configured. Please enter Token and Chat ID first.'], 400);
         }
 
         $message = "🔔 *Test Notification*\n\n" .
@@ -234,17 +241,32 @@ class OrganizationNotificationController extends Controller
                    "If you received this message, your Telegram notification is configured correctly.";
 
         try {
-            $response = Http::withoutVerifying()->post("https://api.telegram.org/bot{$notification->telegram_token}/sendMessage", [
-                'chat_id' => $notification->telegram_chat_id,
-                'text' => $message,
-                'parse_mode' => 'Markdown'
+            // Use cURL directly to avoid Laravel HTTP client issues
+            $ch = curl_init("https://api.telegram.org/bot{$token}/sendMessage");
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => http_build_query([
+                    'chat_id' => $chatId,
+                    'text' => $message,
+                    'parse_mode' => 'Markdown'
+                ]),
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_TIMEOUT => 30,
             ]);
 
-            if ($response->successful()) {
+            $result = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+
+
+            if ($httpCode === 200) {
                 return response()->json(['success' => true, 'message' => 'Test Telegram message sent successfully']);
             }
 
-            return response()->json(['success' => false, 'message' => 'Telegram API error: ' . $response->body()], 500);
+            return response()->json(['success' => false, 'message' => 'Telegram API error: ' . $result], 500);
         } catch (\Exception $e) {
              return response()->json(['success' => false, 'message' => 'Connection error: ' . $e->getMessage()], 500);
         }

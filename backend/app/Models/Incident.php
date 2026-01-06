@@ -102,4 +102,9 @@ class Incident extends Model
     {
         return $this->hasOne(SatisfactionSurvey::class, 'ticket_id', 'id');
     }
+
+    public function getTicketIdAttribute()
+    {
+        return 'INC' . str_pad($this->id, 3, '0', STR_PAD_LEFT);
+    }
 }

@@ -114,6 +114,22 @@ class SystemSettingsSeeder extends Seeder
                 'description' => 'โหมดบำรุงรักษาระบบ',
                 'type' => 'boolean',
             ],
+            
+            // Telegram Settings
+            [
+                'category' => 'Telegram',
+                'key' => 'telegram_bot_token',
+                'value' => '8205207497:AAGA7XZxyRBuD6kl6tpCNWOH97ylSO0ZYrM',
+                'description' => 'Telegram Bot Token',
+                'type' => 'string',
+            ],
+            [
+                'category' => 'Telegram',
+                'key' => 'telegram_chat_id',
+                'value' => '-1003409917470',
+                'description' => 'Telegram Chat ID (Channel or Group)',
+                'type' => 'string',
+            ],
         ];
 
         foreach ($settings as $setting) {

@@ -105,6 +105,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Other Requests
     Route::get('/other-requests/statistics', [OtherRequestController::class, 'statistics']);
     Route::get('/other-requests/my', [OtherRequestController::class, 'myRequests']);
+    Route::post('/other-requests/{id}/approve', [OtherRequestController::class, 'approve']);
+    Route::post('/other-requests/{id}/reject', [OtherRequestController::class, 'reject']);
+    Route::post('/other-requests/{id}/complete', [OtherRequestController::class, 'complete']);
+    Route::post('/other-requests/{id}/receive', [OtherRequestController::class, 'receive']);
     Route::apiResource('other-requests', OtherRequestController::class);
 
     // Service Catalog

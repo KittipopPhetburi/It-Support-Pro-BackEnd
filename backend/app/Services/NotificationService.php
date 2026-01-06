@@ -26,6 +26,13 @@ class NotificationService
             ->where('request_type', $requestType)
             ->first();
 
+        // Debug logging
+        Log::info("NotificationService Query:", [
+            'org' => $organizationName,
+            'type' => $requestType,
+            'found' => $notification ? 'YES' : 'NO'
+        ]);
+
         if (!$notification) {
             Log::info("No notification settings found for {$organizationName} - {$requestType}");
             return;
@@ -152,19 +159,45 @@ class NotificationService
     /**
      * Send Telegram notification
      */
+    /**
+     * Send Telegram notification
+     */
     private function sendTelegram(OrganizationNotification $notification, string $message): void
     {
         try {
-            $response = Http::post("https://api.telegram.org/bot{$notification->telegram_token}/sendMessage", [
-                'chat_id' => $notification->telegram_chat_id,
-                'text' => $message,
-                'parse_mode' => 'Markdown'
+            // Clean token just in case
+            $token = preg_replace('/\s+/u', '', $notification->telegram_token ?? '');
+            $chatId = preg_replace('/\s+/u', '', $notification->telegram_chat_id ?? '');
+
+            if (!$token || !$chatId) {
+                Log::warning("Telegram credentials missing or invalid for {$notification->organization_name}");
+                return;
+            }
+
+            // Use cURL directly to avoid Laravel HTTP client issues
+            $ch = curl_init("https://api.telegram.org/bot{$token}/sendMessage");
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => http_build_query([
+                    'chat_id' => $chatId,
+                    'text' => $message,
+                    'parse_mode' => 'Markdown'
+                ]),
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_TIMEOUT => 30,
             ]);
 
-            if ($response->successful()) {
-                Log::info("Telegram notification sent to chat: {$notification->telegram_chat_id}");
+            $result = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+
+            if ($httpCode === 200) {
+                Log::info("Telegram notification sent to chat: {$chatId}");
             } else {
-                Log::error("Telegram API error: " . $response->body());
+                Log::error("Telegram API error: HTTP {$httpCode} - {$result} (Curl Error: {$curlError})");
             }
         } catch (\Exception $e) {
             Log::error("Failed to send Telegram notification: " . $e->getMessage());

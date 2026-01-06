@@ -27,6 +27,7 @@ class OtherRequest extends Model
         'branch_id',
         'department_id',
         'organization',
+        'asset_id',
         'approved_by',
         'approved_at',
         'rejected_by',
@@ -60,5 +61,10 @@ class OtherRequest extends Model
     public function department()
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function asset()
+    {
+        return $this->belongsTo(Asset::class);
     }
 }

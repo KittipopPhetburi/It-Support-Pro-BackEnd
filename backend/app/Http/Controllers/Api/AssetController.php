@@ -15,7 +15,7 @@ class AssetController extends BaseCrudController
         'category' => 'nullable|string|max:255',
         'brand' => 'nullable|string|max:255',
         'model' => 'nullable|string|max:255',
-        'serial_number' => 'required|string|max:255',
+        'serial_number' => 'nullable|string|max:255',
         'inventory_number' => 'nullable|string|max:255',
         'quantity' => 'nullable|integer|min:1',
         'status' => 'required|in:Available,In Use,Maintenance,Retired,On Loan',

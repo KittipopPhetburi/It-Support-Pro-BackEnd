@@ -103,7 +103,10 @@ class Asset extends Model
         if (empty($this->serial_number)) {
             return [];
         }
-        return array_map('trim', explode(',', $this->serial_number));
+        // Split by comma, newline (actual), carriage return, or literal "\n" sequence
+        // We replace literal "\n" with actual newline first, then split
+        $normalized = str_replace(['\n', '\r'], "\n", $this->serial_number);
+        return preg_split('/[,\n\r]+/', $normalized, -1, PREG_SPLIT_NO_EMPTY);
     }
 
     /**
@@ -136,7 +139,7 @@ class Asset extends Model
             if (isset($requests[$serial])) {
                 $request = $requests[$serial];
                 $statuses[] = [
-                    'serial' => $serial,
+                    'serial_number' => $serial,
                     'status' => $request->request_type === 'borrow' ? 'On Loan' : 'Withdrawn',
                     'request_id' => $request->id,
                     'request_type' => $request->request_type,
@@ -146,7 +149,7 @@ class Asset extends Model
                 ];
             } else {
                 $statuses[] = [
-                    'serial' => $serial,
+                    'serial_number' => $serial,
                     'status' => 'Available',
                     'request_id' => null,
                     'request_type' => null,

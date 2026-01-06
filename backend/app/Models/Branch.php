@@ -17,6 +17,12 @@ class Branch extends Model
         'phone',
         'organization',
         'status',
+        'telegram_chat_id',
+        'notification_config',
+    ];
+
+    protected $casts = [
+        'notification_config' => 'array',
     ];
 
     // ความสัมพันธ์

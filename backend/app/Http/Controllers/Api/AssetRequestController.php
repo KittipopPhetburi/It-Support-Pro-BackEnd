@@ -76,6 +76,14 @@ class AssetRequestController extends BaseCrudController
         // Broadcast event
         event(new AssetRequestUpdated($model, 'created'));
 
+        // Send Notification
+        try {
+            \Illuminate\Support\Facades\Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->notify(new \App\Notifications\AssetRequestNotification($model, 'created'));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send asset request notification: ' . $e->getMessage());
+        }
+
         return response()->json($model, 201);
     }
 
@@ -98,6 +106,16 @@ class AssetRequestController extends BaseCrudController
 
         // Broadcast event
         event(new AssetRequestUpdated($model, 'updated'));
+
+        // Check for "Received" status change
+        if (isset($data['status']) && $data['status'] === 'Received') {
+             try {
+                \Illuminate\Support\Facades\Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                    ->notify(new \App\Notifications\AssetRequestNotification($model, 'received'));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send asset received notification: ' . $e->getMessage());
+            }
+        }
 
         return response()->json($model);
     }
@@ -232,6 +250,14 @@ class AssetRequestController extends BaseCrudController
         // Broadcast event
         event(new AssetRequestUpdated($assetRequest->fresh(), 'status-changed'));
 
+        // Send Notification
+        try {
+            \Illuminate\Support\Facades\Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->notify(new \App\Notifications\AssetRequestNotification($assetRequest, 'approved'));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send asset approved notification: ' . $e->getMessage());
+        }
+
         // Return updated request with asset loaded
         return response()->json($assetRequest->load('asset'));
     }
@@ -248,6 +274,14 @@ class AssetRequestController extends BaseCrudController
 
         // Broadcast event
         event(new AssetRequestUpdated($assetRequest->fresh(), 'status-changed'));
+
+        // Send Notification
+        try {
+            \Illuminate\Support\Facades\Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->notify(new \App\Notifications\AssetRequestNotification($assetRequest, 'rejected'));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send asset rejected notification: ' . $e->getMessage());
+        }
 
         return response()->json($assetRequest);
     }

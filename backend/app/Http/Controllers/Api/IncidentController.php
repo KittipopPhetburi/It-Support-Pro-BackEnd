@@ -8,6 +8,9 @@ use App\Events\IncidentUpdated;
 use App\Events\AssetUpdated;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\IncidentNotification;
+use App\Channels\TelegramChannel;
 
 class IncidentController extends BaseCrudController
 {
@@ -145,6 +148,11 @@ class IncidentController extends BaseCrudController
         if ($displayPriority) $data['priority'] = $displayPriority;
         if ($displayStatus) $data['status'] = $displayStatus;
         
+        // Ensure branch_id is set
+        if (!isset($data['branch_id']) && $request->user()) {
+            $data['branch_id'] = $request->user()->branch_id;
+        }
+
         return $data;
     }
 
@@ -174,7 +182,7 @@ class IncidentController extends BaseCrudController
         }
         
         // Load the assignee relationship to return the technician name
-        $model->load(['assignee', 'requester']);
+        $model->load(['assignee', 'requester', 'branch']);
         
         // Add technician name to response for easier frontend consumption
         $response = $model->toArray();
@@ -191,6 +199,8 @@ class IncidentController extends BaseCrudController
         broadcast(new IncidentUpdated($model, 'created'))->toOthers();
 
         // Send notification to configured channels (Email, Telegram, Line)
+        // Send notification to configured channels (Email, Telegram, Line) - DISABLED IN FAVOR OF NEW SYSTEM
+        /*
         try {
             $notificationService = new NotificationService();
             $notificationService->sendNotification(
@@ -200,13 +210,22 @@ class IncidentController extends BaseCrudController
                     'title' => $model->title,
                     'priority' => $model->priority,
                     'organization' => $model->organization ?? 'ไม่ระบุ',
-                    'requester_name' => $model->requester ? $model->requester->name : 'ไม่ระบุ',
+                    'requester_name' => $model->requester ? $model->requester->name : 'ไม่ระระบุ',
                     'asset_name' => $model->asset_name ?? '',
                     'description' => $model->description ?? '',
                 ]
             );
         } catch (\Exception $e) {
             \Log::error('Failed to send incident notification: ' . $e->getMessage());
+        }
+        */
+
+        // Send Notification using Laravel's Notification system
+        try {
+            Notification::route(TelegramChannel::class, 'system')
+                ->notify(new IncidentNotification($model, 'created'));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send notification: ' . $e->getMessage());
         }
 
         return response()->json($response, 201);
@@ -216,6 +235,8 @@ class IncidentController extends BaseCrudController
     {
         $model = Incident::findOrFail($id);
         $oldStatus = $model->status;
+        $actor = auth()->user();
+        $actorName = $actor ? $actor->name : 'System';
         
         // Map frontend field names to backend
         $mappedData = $this->mapRequestData($request);
@@ -291,7 +312,7 @@ class IncidentController extends BaseCrudController
         $model->save();
         
         // Load the assignee relationship to return the technician name
-        $model->load('assignee');
+        $model->load(['assignee', 'branch', 'requester']);
         
         // Add technician name to response for easier frontend consumption
         $response = $model->toArray();
@@ -309,6 +330,21 @@ class IncidentController extends BaseCrudController
         
         // Broadcast incident update to all listeners
         broadcast(new IncidentUpdated($model, 'updated'))->toOthers();
+
+        // Send Notification if status changed
+        if (isset($data['status']) && $data['status'] !== $oldStatus) {
+            $notificationType = 'updated';
+            if ($data['status'] === 'Resolved') $notificationType = 'resolved';
+            if ($data['status'] === 'Closed') $notificationType = 'closed';
+            
+            try {
+                // Pass actor name and new status
+                Notification::route(TelegramChannel::class, 'system')
+                    ->notify(new IncidentNotification($model, $notificationType, $actorName, $data['status']));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send notification for updated incident: ' . $e->getMessage());
+            }
+        }
         
         // When incident is resolved, notify the requester to complete satisfaction survey
         if ($newStatus === 'Resolved' && $oldStatus !== 'Resolved') {
