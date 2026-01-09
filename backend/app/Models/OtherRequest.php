@@ -26,6 +26,7 @@ class OtherRequest extends Model
         'request_date',
         'branch_id',
         'department_id',
+        'department',
         'organization',
         'asset_id',
         'approved_by',

@@ -11,7 +11,10 @@ class TelegramChannel
 {
     public function send($notifiable, Notification $notification)
     {
+        file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - TelegramChannel::send Triggered\n", FILE_APPEND);
+
         if (!method_exists($notification, 'toTelegram')) {
+            file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - Method toTelegram missing\n", FILE_APPEND);
             return;
         }
 
@@ -22,21 +25,50 @@ class TelegramChannel
         // 1. Determine Context & Branch
         $branch = null;
         $configKey = null;
+        $orgName = null;
+        $reqType = null;
+        $customBotToken = null;
 
         if (property_exists($notification, 'incident')) {
             $branch = $notification->incident->branch;
+            $orgName = $notification->incident->organization;
+            $reqType = 'incident';
             $configKey = 'incident';
-            Log::info("TelegramChannel Debug: Context Incident ID: " . $notification->incident->id . ", Branch ID: " . ($notification->incident->branch_id ?? 'NULL'));
         } elseif (property_exists($notification, 'assetRequest')) {
             $branch = $notification->assetRequest->branch;
-            $configKey = 'asset_request';
-            Log::info("TelegramChannel Debug: Context AssetRequest ID: " . $notification->assetRequest->id);
+            $reqType = strtolower($notification->assetRequest->request_type ?? 'asset_request');
+            $configKey = $reqType;
         } elseif (property_exists($notification, 'otherRequest')) {
             $branch = $notification->otherRequest->branch;
-            $configKey = 'other_request';
+            $orgName = $notification->otherRequest->organization;
+            $reqType = strtolower($notification->otherRequest->request_type ?? 'requisition');
+            $configKey = 'other_request'; 
         }
 
-        // 2. Check Branch Settings
+        file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - Context: Org='$orgName', Type='$reqType'\n", FILE_APPEND);
+
+        // 2. Check OrganizationNotification (Priority 1 - System Settings UI)
+        if ($orgName && $reqType) {
+             Log::info("TelegramChannel: Checking OrganizationNotification for '{$orgName}' type '{$reqType}'");
+             $orgNotif = \App\Models\OrganizationNotification::where('organization_name', $orgName)
+                            ->where('request_type', $reqType)
+                            ->first();
+             
+             if ($orgNotif && $orgNotif->telegram_enabled && !empty($orgNotif->telegram_chat_id)) {
+                 $chatId = $orgNotif->telegram_chat_id;
+                 $shouldSend = true;
+                 
+                 if (!empty($orgNotif->telegram_token)) {
+                     $customBotToken = $orgNotif->telegram_token;
+                 }
+                 Log::info("TelegramChannel: Using OrganizationNotification settings. ChatID: {$chatId}");
+                 file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - Found Org Config. ChatID: $chatId\n", FILE_APPEND);
+                 
+                 goto send_notification;
+             }
+        }
+
+        // 3. Fallback: Check Branch Settings (Legacy)
         if ($branch && !empty($branch->telegram_chat_id)) {
             Log::info("TelegramChannel Debug: Branch '{$branch->name}' found. Chat ID: {$branch->telegram_chat_id}");
             
@@ -44,26 +76,25 @@ class TelegramChannel
             $config = $branch->notification_config ?? [];
             $isEnabled = $config[$configKey] ?? true;
 
-            Log::info("TelegramChannel Debug: Config Key '{$configKey}' is " . ($isEnabled ? 'ENABLED' : 'DISABLED'));
-
             if ($isEnabled) {
                 $chatId = $branch->telegram_chat_id;
                 $shouldSend = true;
             } else {
-                Log::info("Notification skipped for branch {$branch->name}: {$configKey} disabled in config.");
+                Log::info("Notification skipped for branch {$branch->name}: {$configKey} disabled in branch config.");
+                file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - Skipped by Branch Config\n", FILE_APPEND);
                 return;
             }
         } else {
-            Log::warning("TelegramChannel Debug: No Branch found OR No Chat ID for Branch. Model Branch ID: " . ($branch ? $branch->id : 'NULL'));
-            if ($branch) {
-                Log::warning("TelegramChannel Debug: Branch '{$branch->name}' has no telegram_chat_id");
-            }
+            Log::warning("TelegramChannel Debug: No OrganizationNotification found AND No Branch Chat ID found.");
+            file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - No Config Found anywhere\n", FILE_APPEND);
         } 
+
+        send_notification: 
         
-        // 3. Global Fallback (REMOVED as per user request)
-        // User: "ไม่มีการส่งเข้ากลุ่มกลางแล้ว: ถ้าสาขาไหนไม่ตั้งค่า = เงียบกริบ"
+        // 4. Global Fallback (REMOVED as per user request)
         if (!$chatId) {
-             // Log::info("Notification skipped: No branch Chat ID found.");
+             Log::warning("TelegramChannel: No config found for notification. Skipped.");
+             file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - Aborting: No ChatID\n", FILE_APPEND);
              return;
         }
 
@@ -71,25 +102,32 @@ class TelegramChannel
             return;
         }
 
-        $botToken = SystemSetting::where('key', 'telegram_bot_token')->value('value') ?? env('TELEGRAM_BOT_TOKEN');
+        // Use custom token if available, otherwise default to SystemSetting or Env
+        $botToken = $customBotToken 
+            ?: (SystemSetting::where('key', 'telegram_bot_token')->value('value') ?? env('TELEGRAM_BOT_TOKEN'));
 
         if (!$botToken || !$chatId) {
             Log::warning('Telegram Notification failed: Missing Token or Chat ID');
+            file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - Aborting: Missing Token or Chat ID. Token len: " . strlen($botToken ?? '') . "\n", FILE_APPEND);
             return;
         }
 
         try {
+            file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - POSTing to Telegram API...\n", FILE_APPEND);
             $response = Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
                 'chat_id' => $chatId,
                 'text' => $message,
                 'parse_mode' => 'HTML',
             ]);
 
+            file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - Response: " . $response->status() . " " . $response->body() . "\n", FILE_APPEND);
+
             if (!$response->successful()) {
                 Log::error('Telegram API Error: ' . $response->body());
             }
         } catch (\Exception $e) {
             Log::error('Telegram Notification failed: ' . $e->getMessage());
+            file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - Exception: " . $e->getMessage() . "\n", FILE_APPEND);
         }
     }
 }

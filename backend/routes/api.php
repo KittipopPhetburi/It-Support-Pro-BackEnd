@@ -42,7 +42,7 @@ use App\Http\Controllers\Api\{
 */
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-
+Route::apiResource('users', UserController::class);
 /*
 |--------------------------------------------------------------------------
 | Protected Routes - ต้อง Login
@@ -57,7 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Users
     Route::get('/users/technicians', [UserController::class, 'technicians']);
-    Route::apiResource('users', UserController::class);
+    // Route::apiResource('users', UserController::class);
     Route::get('/technicians', [UserController::class, 'getTechnicians']);
 
     // Branches

@@ -40,6 +40,7 @@ class Asset extends Model
         'department',
         'organization',
         'qr_code',
+        'serial_mapping', // Added for individual serial status
     ];
 
     protected $appends = [
@@ -54,7 +55,10 @@ class Asset extends Model
         'expiry_date' => 'date',
         'quantity' => 'integer',
         'total_licenses' => 'integer',
+        'quantity' => 'integer',
+        'total_licenses' => 'integer',
         'used_licenses' => 'integer',
+        'serial_mapping' => 'array', // Cast JSON to array
     ];
 
     public function assignedToUser()
@@ -135,7 +139,10 @@ class Asset extends Model
             ->keyBy('borrowed_serial');
 
         $statuses = [];
+        $mapping = $this->serial_mapping ?? []; // Get custom mapping
+
         foreach ($allSerials as $serial) {
+            // Priority 1: Check if currently borrowed/withdrawn (Active Request)
             if (isset($requests[$serial])) {
                 $request = $requests[$serial];
                 $statuses[] = [
@@ -147,7 +154,22 @@ class Asset extends Model
                     'requester_id' => $request->requester_id,
                     'approved_at' => $request->approved_at,
                 ];
-            } else {
+            } 
+            // Priority 2: Check custom mapping (Maintenance, Retired, etc.)
+            elseif (isset($mapping[$serial]) && isset($mapping[$serial]['status'])) {
+                 $statuses[] = [
+                    'serial_number' => $serial,
+                    'status' => $mapping[$serial]['status'], // e.g., 'Maintenance', 'Retired'
+                    'note' => $mapping[$serial]['note'] ?? null,
+                    'request_id' => null,
+                    'request_type' => null,
+                    'requester_name' => null,
+                    'requester_id' => null,
+                    'approved_at' => null,
+                ];
+            }
+            // Priority 3: Default Available
+            else {
                 $statuses[] = [
                     'serial_number' => $serial,
                     'status' => 'Available',
@@ -169,7 +191,19 @@ class Asset extends Model
     {
         $allSerials = $this->getSerialNumbersArray();
         $borrowedSerials = $this->getBorrowedSerials();
-        return array_values(array_diff($allSerials, $borrowedSerials));
+        
+        // Also filter out serials that are unavailable due to mapping (Maintenance, Retired, etc.)
+        $mapping = $this->serial_mapping ?? [];
+        $unavailableFromMapping = [];
+        foreach ($mapping as $serial => $data) {
+            if (isset($data['status']) && $data['status'] !== 'Available') {
+                $unavailableFromMapping[] = $serial;
+            }
+        }
+        
+        $unavailable = array_merge($borrowedSerials, $unavailableFromMapping);
+        
+        return array_values(array_diff($allSerials, $unavailable));
     }
 
     /**

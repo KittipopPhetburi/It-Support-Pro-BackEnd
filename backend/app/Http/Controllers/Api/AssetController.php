@@ -39,6 +39,7 @@ class AssetController extends BaseCrudController
         'department' => 'nullable|string|max:255',
         'organization' => 'nullable|string|max:255',
         'qr_code' => 'nullable|string|max:255',
+        'serial_mapping' => 'nullable|array',
     ];
 
     /**
@@ -109,6 +110,42 @@ class AssetController extends BaseCrudController
             'hardware' => Asset::where('category', 'Hardware')->count(),
             'software' => Asset::where('category', 'Software')->count(),
         ]);
+    }
+
+    /**
+     * Update asset with serial status sync logic
+     */
+    public function update(Request $request, $id)
+    {
+        $asset = Asset::findOrFail($id);
+
+        $rules = $this->updateValidationRules ?: $this->validationRules;
+        $data = $rules ? $request->validate($rules) : $request->all();
+
+        // Check if status is changing
+        if (isset($data['status']) && $data['status'] !== $asset->status) {
+            $newStatus = $data['status'];
+            
+            // Sync status to all serial numbers if they exist
+            if (!empty($asset->serial_mapping)) {
+                $mapping = $asset->serial_mapping;
+                foreach ($mapping as $serial => $info) {
+                    // Update status for each serial
+                    // If status is 'Available', we should clear any 'assigned_to' info potentially? 
+                    // For now, just syncing the status status.
+                    $mapping[$serial]['status'] = $newStatus;
+                    
+                    // Add a note about the mass update
+                    $mapping[$serial]['note'] = ($mapping[$serial]['note'] ?? '') . " [System: Bulk status update to $newStatus]";
+                }
+                $data['serial_mapping'] = $mapping;
+            }
+        }
+
+        $asset->fill($data);
+        $asset->save();
+
+        return response()->json($asset);
     }
 
     /**

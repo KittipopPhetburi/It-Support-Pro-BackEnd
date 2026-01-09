@@ -10,7 +10,7 @@ use App\Notifications\OtherRequestNotification;
 
 class OtherRequestController extends BaseCrudController
 {
-    protected $modelClass = OtherRequest::class;
+    protected string $modelClass = OtherRequest::class;
 
     protected array $validationRules = [
         'requester_id' => 'nullable|integer|exists:users,id',
@@ -82,7 +82,8 @@ class OtherRequestController extends BaseCrudController
 
         // 3. Send Notification
         try {
-            Notification::send(null, new OtherRequestNotification($otherRequest, 'created'));
+            Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->notifyNow(new OtherRequestNotification($otherRequest, 'created'));
         } catch (\Exception $e) {
             \Log::error('Failed to send notification: ' . $e->getMessage());
         }
@@ -104,8 +105,10 @@ class OtherRequestController extends BaseCrudController
         ]);
 
         // Send Notification
+        // Send Notification
         try {
-            Notification::send(null, new OtherRequestNotification($otherRequest, 'approved'));
+            Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->notifyNow(new OtherRequestNotification($otherRequest, 'approved'));
         } catch (\Exception $e) {
             \Log::error('Failed to send notification: ' . $e->getMessage());
         }
@@ -136,8 +139,10 @@ class OtherRequestController extends BaseCrudController
         ]);
 
         // Send Notification
+        // Send Notification
         try {
-            Notification::send(null, new OtherRequestNotification($otherRequest, 'rejected'));
+            Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->notifyNow(new OtherRequestNotification($otherRequest, 'rejected'));
         } catch (\Exception $e) {
             \Log::error('Failed to send notification: ' . $e->getMessage());
         }
@@ -170,8 +175,10 @@ class OtherRequestController extends BaseCrudController
         ]);
 
         // Send Notification
+        // Send Notification
         try {
-            Notification::send(null, new OtherRequestNotification($otherRequest, 'completed'));
+            Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->notifyNow(new OtherRequestNotification($otherRequest, 'completed'));
         } catch (\Exception $e) {
             \Log::error('Failed to send notification: ' . $e->getMessage());
         }
@@ -297,18 +304,19 @@ class OtherRequestController extends BaseCrudController
                 }
             }
 
+        // Send Notification
+        try {
+             Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->notifyNow(new OtherRequestNotification($otherRequest, 'received'));
+        } catch (\Exception $e) {
+             \Log::error('Failed to send notification: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Request received successfully',
             'data' => $otherRequest->fresh(),
             'assigned_serials' => $assignedSerials,
         ]);
-
-        // Send Notification (After response or via queue)
-        try {
-             Notification::send(null, new OtherRequestNotification($otherRequest, 'received'));
-        } catch (\Exception $e) {
-             \Log::error('Failed to send notification: ' . $e->getMessage());
-        }
     }
 }

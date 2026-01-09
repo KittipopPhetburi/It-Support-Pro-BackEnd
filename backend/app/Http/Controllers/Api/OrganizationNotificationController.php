@@ -93,6 +93,26 @@ class OrganizationNotificationController extends Controller
 
         $notification->update($data);
 
+        // Sync to Branch table (notification_config JSON) for TelegramChannel to use
+        $branch = \App\Models\Branch::where('name', $notification->organization_name)->first();
+        if ($branch) {
+            $config = $branch->notification_config ?? [];
+            
+            // Map request_type to config key (ensure lowercase)
+            $key = strtolower($notification->request_type);
+            
+            // Update the specific key based on telegramEnabled
+            // If telegramEnabled is passed in request, use it. Otherwise use current model value.
+            $isEnabled = $request->has('telegramEnabled') ? $request->telegramEnabled : $notification->telegram_enabled;
+            
+            $config[$key] = (boolean) $isEnabled;
+            
+            $branch->notification_config = $config;
+            $branch->save();
+            
+            \Log::info("Synced notification config for branch {$branch->name}: {$key} = " . ($isEnabled ? 'true' : 'false'));
+        }
+
         return response()->json([
             'success' => true,
             'data' => [

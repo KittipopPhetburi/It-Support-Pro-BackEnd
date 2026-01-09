@@ -18,7 +18,7 @@ class AssetRequestController extends BaseCrudController
         'quantity' => 'nullable|integer|min:1',
         'justification' => 'nullable|string',
         'reason' => 'nullable|string',
-        'status' => 'nullable|in:Pending,Approved,Rejected,Fulfilled,Received,Cancelled',
+        'status' => 'nullable|in:Pending,Approved,Rejected,Fulfilled,Received,Cancelled,Returned',
         'request_date' => 'nullable|date',
         'branch_id' => 'nullable|integer',
         'department_id' => 'nullable|integer',
@@ -92,10 +92,142 @@ class AssetRequestController extends BaseCrudController
         $model = AssetRequest::findOrFail($id);
 
         $rules = $this->updateValidationRules ?: $this->validationRules;
+        $rules['status'] = 'nullable|in:Pending,Approved,Rejected,Fulfilled,Received,Cancelled,Returned'; // Update rule here too
 
-        $data = $rules
-            ? $request->validate($rules)
-            : $request->all();
+        $data = $request->validate($rules);
+
+        // HANDLE ASSET RETURN
+        if (isset($data['return_condition']) && !$model->is_returned) {
+            $data['is_returned'] = true;
+            $data['return_date'] = $data['return_date'] ?? now();
+            $data['status'] = 'Returned'; // Change status to release the asset from "Borrowed" list
+
+            if ($model->asset_id) {
+                $asset = \App\Models\Asset::find($model->asset_id);
+                if ($asset) {
+                    $condition = $data['return_condition'];
+                    
+                    // Case: Serialized Asset
+                    if ($model->borrowed_serial) {
+                        $mapping = $asset->serial_mapping ?? [];
+                        
+                        if ($condition === 'Damaged') {
+                            // Map to Maintenance (Repairing)
+                            $mapping[$model->borrowed_serial] = [
+                                'status' => 'Maintenance',
+                                'note' => "Damaged returned from Request #{$model->id}",
+                                'date' => now()->toDateString()
+                            ];
+                        } elseif ($condition === 'Lost') {
+                            // Map to Lost
+                            $mapping[$model->borrowed_serial] = [
+                                'status' => 'Lost',
+                                'note' => "Lost in Request #{$model->id}",
+                                'date' => now()->toDateString()
+                            ];
+                        } else {
+                            // Normal: Ensure no mapping (Available)
+                            unset($mapping[$model->borrowed_serial]);
+                        }
+                        
+                        $asset->serial_mapping = $mapping;
+                        $asset->save();
+                    } 
+                    // Case: Non-Serialized Asset
+                    else {
+                        // Logic for non-serialized (quantity based)
+                         if ($condition === 'Damaged') {
+                            // Logic: It was used, now returned broken.
+                            // Decrement 'used_licenses' (so it's not "used" anymore)
+                            // But do NOT increment 'quantity' (available)? 
+                            // Actually used_licenses tracks "currently borrowed".
+                            // If returned, used_licenses--.
+                            // But if broken, we should decrement total quantity?
+                            
+                            if ($asset->category === 'Software') {
+                                $asset->decrement('used_licenses');
+                                // Maybe decrement total if lost? But for damaged software?? Software doesn't break physically.
+                                // Assuming Hardware Non-Serial (e.g. Mouse)
+                            } else {
+                                // User returned it.
+                                $asset->decrement('used_licenses'); // It's back from user.
+                                // But it's broken. So remove from stock.
+                                $asset->decrement('quantity');
+                            }
+                        } elseif ($condition === 'Lost') {
+                            // User lost it.
+                            $asset->decrement('used_licenses'); // Back from user (conceptually)
+                            $asset->decrement('quantity'); // Removed from stock
+                        } else {
+                            // Normal
+                            $asset->decrement('used_licenses'); // Back in stock
+                        }
+                    }
+
+                    // Prepare asset for status update check
+                    // We need to reload/refresh calculated attributes like available_quantity
+                    $asset = $asset->fresh();
+                    $availableQty = $asset->available_quantity;
+
+                    if ($availableQty > 0) {
+                        // If we have stock, it's Available (even if some are borrowed/maintenance)
+                        if ($asset->status !== 'Available') {
+                            $asset->status = 'Available';
+                            $asset->save();
+                        }
+                    } else {
+                        // If stock is 0, check why
+                        $borrowedCount = count($asset->getBorrowedSerials());
+                        
+                        // Check logic for Remaining items
+                        if ($borrowedCount > 0) {
+                            // Still have borrowed items -> In Use / On Loan
+                            // We don't change it if it is already In Use/On Loan
+                            if ($asset->status === 'Available') {
+                                $asset->status = 'In Use'; // Fallback
+                                $asset->save();
+                            }
+                        } else {
+                            // None borrowed. Must be Maintenance, Lost, or Retired.
+                            // Check mapping for Maintenance
+                            $mapping = $asset->serial_mapping ?? [];
+                            $hasMaintenance = false;
+                            foreach ($mapping as $m) {
+                                if (isset($m['status']) && $m['status'] === 'Maintenance') {
+                                    $hasMaintenance = true;
+                                    break;
+                                }
+                            }
+                            
+                            if ($hasMaintenance) {
+                                $asset->status = 'Maintenance';
+                                $asset->save();
+                            } else {
+                                // Default to Retired or keep as is if all Lost
+                                // If status was In Use, switch to Retired/Empty
+                                if ($asset->status === 'In Use' || $asset->status === 'On Loan') {
+                                    $asset->status = 'Retired'; // Or just leave it? 'Retired' makes sense if broken/lost.
+                                    $asset->save();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Update BorrowingHistory
+            $history = \App\Models\BorrowingHistory::where('request_id', $model->id)
+                ->where('status', 'active')
+                ->first();
+                
+            if ($history) {
+                $history->update([
+                    'actual_return_date' => $data['return_date'],
+                    'status' => 'returned',
+                    'notes' => $history->notes . "\n[Returned: {$data['return_condition']}] " . ($data['return_notes'] ?? ''),
+                ]);
+            }
+        }
 
         $model->fill($data);
         $model->save();
@@ -106,6 +238,7 @@ class AssetRequestController extends BaseCrudController
 
         // Broadcast event
         event(new AssetRequestUpdated($model, 'updated'));
+// ...
 
         // Check for "Received" status change
         if (isset($data['status']) && $data['status'] === 'Received') {
