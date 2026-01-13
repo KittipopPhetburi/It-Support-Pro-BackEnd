@@ -42,7 +42,7 @@ use App\Http\Controllers\Api\{
 */
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::apiResource('users', UserController::class);
+
 /*
 |--------------------------------------------------------------------------
 | Protected Routes - ต้อง Login
@@ -57,7 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Users
     Route::get('/users/technicians', [UserController::class, 'technicians']);
-    // Route::apiResource('users', UserController::class);
+    Route::apiResource('users', UserController::class);
     Route::get('/technicians', [UserController::class, 'getTechnicians']);
 
     // Branches
@@ -166,6 +166,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Role management (CRUD)
     Route::get('/roles', [RoleController::class, 'index']);
+    Route::get('/roles/{role}', [RoleController::class, 'show']);
     Route::post('/roles', [RoleController::class, 'store']);
     Route::put('/roles/{role}', [RoleController::class, 'update']);
     Route::delete('/roles/{role}', [RoleController::class, 'destroy']);

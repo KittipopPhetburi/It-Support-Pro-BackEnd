@@ -36,6 +36,23 @@ class RoleController extends Controller
     }
 
     /**
+     * GET /api/roles/{role}
+     * Show a single role
+     */
+    public function show(Role $role)
+    {
+        $role->load('permissions');
+        $userCount = User::where('role', $role->name)->count();
+        $role->user_count = $userCount;
+        $role->is_default = in_array($role->name, ['Admin', 'Technician', 'Helpdesk', 'Purchase', 'User']);
+        
+        return response()->json([
+            'success' => true,
+            'role' => $role,
+        ]);
+    }
+
+    /**
      * POST /api/roles
      * Create a new role with permissions
      */
