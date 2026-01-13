@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Branch;
+use App\Models\Role;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -17,6 +18,12 @@ class UserManagementTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        
+        // Create roles if they don't exist
+        Role::firstOrCreate(['name' => 'admin'], ['description' => 'Administrator']);
+        Role::firstOrCreate(['name' => 'user'], ['description' => 'Regular User']);
+        Role::firstOrCreate(['name' => 'technician'], ['description' => 'Technician']);
+        
         $this->admin = User::factory()->create(['role' => 'admin']);
     }
 
