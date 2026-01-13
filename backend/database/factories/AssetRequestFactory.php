@@ -15,34 +15,30 @@ class AssetRequestFactory extends Factory
     {
         return [
             'requester_id' => User::factory(),
-            'asset_id' => Asset::factory(),
-            'purpose' => $this->faker->sentence(),
-            'request_type' => $this->faker->randomElement(['borrow', 'purchase', 'transfer']),
+            'asset_type' => $this->faker->randomElement(['Laptop', 'Desktop', 'Monitor', 'Printer']),
             'quantity' => 1,
-            'status' => 'pending',
+            'status' => 'Pending',
         ];
     }
 
     public function pending(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'pending',
+            'status' => 'Pending',
         ]);
     }
 
     public function approved(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'approved',
-            'approved_at' => now(),
+            'status' => 'Approved',
         ]);
     }
 
     public function rejected(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'rejected',
-            'rejection_reason' => $this->faker->sentence(),
+            'status' => 'Rejected',
         ]);
     }
 }

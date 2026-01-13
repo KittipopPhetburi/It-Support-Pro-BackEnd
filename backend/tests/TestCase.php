@@ -21,11 +21,11 @@ abstract class TestCase extends BaseTestCase
     protected function seedRoles(): void
     {
         $roles = [
-            ['name' => 'admin', 'description' => 'Administrator'],
-            ['name' => 'manager', 'description' => 'Manager'],
-            ['name' => 'technician', 'description' => 'Technician'],
-            ['name' => 'helpdesk', 'description' => 'Helpdesk'],
-            ['name' => 'user', 'description' => 'Regular User'],
+            ['name' => 'admin', 'display_name' => 'Administrator'],
+            ['name' => 'manager', 'display_name' => 'Manager'],
+            ['name' => 'technician', 'display_name' => 'Technician'],
+            ['name' => 'helpdesk', 'display_name' => 'Helpdesk'],
+            ['name' => 'user', 'display_name' => 'Regular User'],
         ];
         
         foreach ($roles as $role) {

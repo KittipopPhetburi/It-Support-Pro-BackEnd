@@ -13,7 +13,7 @@ class IncidentFactory extends Factory
 
     public function definition(): array
     {
-        $priorities = ['low', 'medium', 'high', 'critical'];
+        $priorities = ['Low', 'Medium', 'High', 'Critical'];
         $statuses = ['Open', 'In Progress', 'Resolved', 'Closed'];
         $categories = ['Hardware', 'Software', 'Network', 'Security', 'Other'];
 
@@ -23,7 +23,7 @@ class IncidentFactory extends Factory
             'priority' => $this->faker->randomElement($priorities),
             'status' => $this->faker->randomElement($statuses),
             'category' => $this->faker->randomElement($categories),
-            'reporter_id' => User::factory(),
+            'requester_id' => User::factory(),
             'branch_id' => Branch::factory(),
             'location' => $this->faker->city(),
             'contact_method' => $this->faker->randomElement(['phone', 'email', 'walk-in']),
@@ -65,14 +65,14 @@ class IncidentFactory extends Factory
     public function highPriority(): static
     {
         return $this->state(fn (array $attributes) => [
-            'priority' => 'high',
+            'priority' => 'High',
         ]);
     }
 
     public function critical(): static
     {
         return $this->state(fn (array $attributes) => [
-            'priority' => 'critical',
+            'priority' => 'Critical',
         ]);
     }
 }
