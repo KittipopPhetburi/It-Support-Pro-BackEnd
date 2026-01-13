@@ -2,11 +2,12 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class HealthCheckTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function health_endpoint_returns_ok(): void
     {
         $response = $this->getJson('/api/health');
@@ -20,7 +21,7 @@ class HealthCheckTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function health_endpoint_shows_api_running(): void
     {
         $response = $this->getJson('/api/health');
@@ -31,7 +32,7 @@ class HealthCheckTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function database_health_endpoint_works(): void
     {
         $response = $this->getJson('/api/health/database');
@@ -45,7 +46,7 @@ class HealthCheckTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function login_endpoint_exists(): void
     {
         $response = $this->postJson('/api/login', []);
@@ -54,7 +55,7 @@ class HealthCheckTest extends TestCase
         $this->assertNotEquals(404, $response->status());
     }
 
-    /** @test */
+    #[Test]
     public function register_endpoint_exists(): void
     {
         $response = $this->postJson('/api/register', []);
@@ -63,7 +64,7 @@ class HealthCheckTest extends TestCase
         $this->assertNotEquals(404, $response->status());
     }
 
-    /** @test */
+    #[Test]
     public function protected_routes_require_authentication(): void
     {
         $response = $this->getJson('/api/me');
