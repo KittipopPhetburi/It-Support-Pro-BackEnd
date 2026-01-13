@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Branch;
+use App\Models\Asset;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -13,7 +14,9 @@ class PmScheduleTest extends TestCase
     use DatabaseTransactions;
 
     private User $admin;
+    private User $technician;
     private Branch $branch;
+    private Asset $asset;
 
     protected function setUp(): void
     {
@@ -21,6 +24,13 @@ class PmScheduleTest extends TestCase
         $this->branch = Branch::factory()->create();
         $this->admin = User::factory()->create([
             'role' => 'admin',
+            'branch_id' => $this->branch->id,
+        ]);
+        $this->technician = User::factory()->create([
+            'role' => 'technician',
+            'branch_id' => $this->branch->id,
+        ]);
+        $this->asset = Asset::factory()->create([
             'branch_id' => $this->branch->id,
         ]);
     }
@@ -37,10 +47,11 @@ class PmScheduleTest extends TestCase
     public function admin_can_create_pm_schedule(): void
     {
         $response = $this->actingAs($this->admin)->postJson('/api/pm-schedules', [
-            'title' => 'Monthly Server Maintenance',
-            'description' => 'Regular server maintenance tasks',
-            'frequency' => 'monthly',
-            'branch_id' => $this->branch->id,
+            'asset_id' => $this->asset->id,
+            'frequency' => 'Monthly',
+            'assigned_to' => $this->technician->id,
+            'scheduled_date' => now()->addDays(7)->toDateString(),
+            'notes' => 'Regular server maintenance tasks',
         ]);
 
         $response->assertStatus(201);
@@ -59,14 +70,14 @@ class PmScheduleTest extends TestCase
     {
         // First create a PM schedule to view
         $createResponse = $this->actingAs($this->admin)->postJson('/api/pm-schedules', [
-            'title' => 'Test PM',
-            'description' => 'Test description',
-            'frequency' => 'weekly',
-            'branch_id' => $this->branch->id,
+            'asset_id' => $this->asset->id,
+            'frequency' => 'Weekly',
+            'assigned_to' => $this->technician->id,
+            'scheduled_date' => now()->addDays(3)->toDateString(),
         ]);
         
         if ($createResponse->status() === 201) {
-            $pmId = $createResponse->json('data.id') ?? $createResponse->json('id');
+            $pmId = $createResponse->json('data.dbId') ?? $createResponse->json('data.id');
             if ($pmId) {
                 $response = $this->actingAs($this->admin)->getJson("/api/pm-schedules/{$pmId}");
                 $response->assertStatus(200);

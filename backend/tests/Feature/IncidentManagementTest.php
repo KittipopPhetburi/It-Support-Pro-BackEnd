@@ -41,7 +41,7 @@ class IncidentManagementTest extends TestCase
     {
         Incident::factory()->count(5)->create([
             'branch_id' => $this->branch->id,
-            'reporter_id' => $this->user->id,
+            'requester_id' => $this->user->id,
         ]);
 
         $response = $this->actingAs($this->admin)->getJson('/api/incidents');
@@ -63,8 +63,10 @@ class IncidentManagementTest extends TestCase
         $response = $this->actingAs($this->user)->postJson('/api/incidents', [
             'title' => 'Computer not working',
             'description' => 'My computer does not turn on',
-            'priority' => 'high',
+            'priority' => 'High',
+            'status' => 'Open',
             'category' => 'Hardware',
+            'requester_id' => $this->user->id,
             'location' => 'Building A',
             'contact_method' => 'email',
         ]);
@@ -80,7 +82,7 @@ class IncidentManagementTest extends TestCase
     {
         $incident = Incident::factory()->create([
             'branch_id' => $this->branch->id,
-            'reporter_id' => $this->user->id,
+            'requester_id' => $this->user->id,
         ]);
 
         $response = $this->actingAs($this->admin)->getJson("/api/incidents/{$incident->id}");
@@ -93,7 +95,7 @@ class IncidentManagementTest extends TestCase
     {
         $incident = Incident::factory()->open()->create([
             'branch_id' => $this->branch->id,
-            'reporter_id' => $this->user->id,
+            'requester_id' => $this->user->id,
         ]);
 
         $response = $this->actingAs($this->admin)->putJson("/api/incidents/{$incident->id}", [
@@ -108,7 +110,7 @@ class IncidentManagementTest extends TestCase
     {
         $incident = Incident::factory()->open()->create([
             'branch_id' => $this->branch->id,
-            'reporter_id' => $this->user->id,
+            'requester_id' => $this->user->id,
         ]);
 
         $response = $this->actingAs($this->admin)->postJson("/api/incidents/{$incident->id}/assign", [
@@ -123,11 +125,11 @@ class IncidentManagementTest extends TestCase
     {
         Incident::factory()->count(3)->create([
             'branch_id' => $this->branch->id,
-            'reporter_id' => $this->user->id,
+            'requester_id' => $this->user->id,
         ]);
         Incident::factory()->count(2)->create([
             'branch_id' => $this->branch->id,
-            'reporter_id' => $this->admin->id,
+            'requester_id' => $this->admin->id,
         ]);
 
         $response = $this->actingAs($this->user)->getJson('/api/incidents/my');
@@ -140,7 +142,7 @@ class IncidentManagementTest extends TestCase
     {
         Incident::factory()->count(2)->create([
             'branch_id' => $this->branch->id,
-            'reporter_id' => $this->user->id,
+            'requester_id' => $this->user->id,
             'assignee_id' => $this->technician->id,
         ]);
 
@@ -154,11 +156,11 @@ class IncidentManagementTest extends TestCase
     {
         Incident::factory()->count(3)->open()->create([
             'branch_id' => $this->branch->id,
-            'reporter_id' => $this->user->id,
+            'requester_id' => $this->user->id,
         ]);
         Incident::factory()->count(2)->resolved()->create([
             'branch_id' => $this->branch->id,
-            'reporter_id' => $this->user->id,
+            'requester_id' => $this->user->id,
         ]);
 
         $response = $this->actingAs($this->admin)->getJson('/api/incidents?status=Open');
@@ -171,14 +173,14 @@ class IncidentManagementTest extends TestCase
     {
         Incident::factory()->count(2)->highPriority()->create([
             'branch_id' => $this->branch->id,
-            'reporter_id' => $this->user->id,
+            'requester_id' => $this->user->id,
         ]);
         Incident::factory()->count(3)->critical()->create([
             'branch_id' => $this->branch->id,
-            'reporter_id' => $this->user->id,
+            'requester_id' => $this->user->id,
         ]);
 
-        $response = $this->actingAs($this->admin)->getJson('/api/incidents?priority=critical');
+        $response = $this->actingAs($this->admin)->getJson('/api/incidents?priority=Critical');
 
         $response->assertStatus(200);
     }
@@ -188,7 +190,7 @@ class IncidentManagementTest extends TestCase
     {
         Incident::factory()->count(5)->create([
             'branch_id' => $this->branch->id,
-            'reporter_id' => $this->user->id,
+            'requester_id' => $this->user->id,
         ]);
 
         $response = $this->actingAs($this->admin)->getJson('/api/incidents/statistics');
@@ -201,7 +203,7 @@ class IncidentManagementTest extends TestCase
     {
         $incident = Incident::factory()->create([
             'branch_id' => $this->branch->id,
-            'reporter_id' => $this->user->id,
+            'requester_id' => $this->user->id,
         ]);
 
         $response = $this->actingAs($this->admin)->deleteJson("/api/incidents/{$incident->id}");
