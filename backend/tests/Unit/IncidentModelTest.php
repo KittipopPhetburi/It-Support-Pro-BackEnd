@@ -14,13 +14,13 @@ class IncidentModelTest extends TestCase
     use DatabaseTransactions;
 
     #[Test]
-    public function incident_belongs_to_reporter(): void
+    public function incident_belongs_to_requester(): void
     {
         $user = User::factory()->create();
-        $incident = Incident::factory()->create(['reporter_id' => $user->id]);
+        $incident = Incident::factory()->create(['requester_id' => $user->id]);
 
-        $this->assertInstanceOf(User::class, $incident->reporter);
-        $this->assertEquals($user->id, $incident->reporter->id);
+        $this->assertInstanceOf(User::class, $incident->requester);
+        $this->assertEquals($user->id, $incident->requester->id);
     }
 
     #[Test]
@@ -81,8 +81,8 @@ class IncidentModelTest extends TestCase
         $highPriority = Incident::factory()->highPriority()->create();
         $critical = Incident::factory()->critical()->create();
 
-        $this->assertEquals('high', $highPriority->priority);
-        $this->assertEquals('critical', $critical->priority);
+        $this->assertEquals('High', $highPriority->priority);
+        $this->assertEquals('Critical', $critical->priority);
     }
 
     #[Test]

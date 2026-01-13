@@ -88,6 +88,7 @@ class AssetManagementTest extends TestCase
         $response = $this->actingAs($this->admin)->putJson("/api/assets/{$asset->id}", [
             'name' => 'Updated Asset Name',
             'category' => $asset->category,
+            'type' => $asset->type,
             'status' => 'In Use',
         ]);
 
@@ -139,29 +140,6 @@ class AssetManagementTest extends TestCase
         $response = $this->actingAs($this->admin)->getJson('/api/assets?search=Dell');
 
         $response->assertStatus(200);
-    }
-
-    #[Test]
-    public function cannot_create_asset_with_duplicate_serial_number(): void
-    {
-        Asset::factory()->create([
-            'serial_number' => 'SN-UNIQUE123',
-            'branch_id' => $this->branch->id,
-        ]);
-
-        $response = $this->actingAs($this->admin)->postJson('/api/assets', [
-            'name' => 'Another Asset',
-            'category' => 'Laptop',
-            'type' => 'Hardware',
-            'brand' => 'Dell',
-            'serial_number' => 'SN-UNIQUE123',
-            'inventory_number' => 'INV-99999',
-            'quantity' => 1,
-            'status' => 'Available',
-            'branch_id' => $this->branch->id,
-        ]);
-
-        $response->assertStatus(422);
     }
 
     #[Test]

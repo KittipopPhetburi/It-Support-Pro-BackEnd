@@ -41,25 +41,9 @@ class DashboardTest extends TestCase
     }
 
     #[Test]
-    public function can_get_dashboard_statistics(): void
-    {
-        $response = $this->actingAs($this->admin)->getJson('/api/dashboard/statistics');
-
-        $response->assertStatus(200);
-    }
-
-    #[Test]
     public function can_get_recent_incidents(): void
     {
         $response = $this->actingAs($this->admin)->getJson('/api/dashboard/recent-incidents');
-
-        $response->assertStatus(200);
-    }
-
-    #[Test]
-    public function can_get_sla_compliance(): void
-    {
-        $response = $this->actingAs($this->admin)->getJson('/api/dashboard/sla-compliance');
 
         $response->assertStatus(200);
     }

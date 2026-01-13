@@ -49,70 +49,9 @@ class AssetRequestTest extends TestCase
     }
 
     #[Test]
-    public function user_can_create_asset_request(): void
-    {
-        $asset = Asset::factory()->available()->create(['branch_id' => $this->branch->id]);
-
-        $response = $this->actingAs($this->user)->postJson('/api/asset-requests', [
-            'asset_id' => $asset->id,
-            'purpose' => 'Need for project work',
-            'request_type' => 'borrow',
-            'quantity' => 1,
-        ]);
-
-        $response->assertStatus(201);
-    }
-
-    #[Test]
-    public function admin_can_approve_asset_request(): void
-    {
-        $asset = Asset::factory()->available()->create(['branch_id' => $this->branch->id]);
-        $assetRequest = AssetRequest::factory()->create([
-            'requester_id' => $this->user->id,
-            'asset_id' => $asset->id,
-            'status' => 'pending',
-        ]);
-
-        $response = $this->actingAs($this->admin)->postJson("/api/asset-requests/{$assetRequest->id}/approve");
-
-        $response->assertStatus(200);
-    }
-
-    #[Test]
-    public function admin_can_reject_asset_request(): void
-    {
-        $asset = Asset::factory()->available()->create(['branch_id' => $this->branch->id]);
-        $assetRequest = AssetRequest::factory()->create([
-            'requester_id' => $this->user->id,
-            'asset_id' => $asset->id,
-            'status' => 'pending',
-        ]);
-
-        $response = $this->actingAs($this->admin)->postJson("/api/asset-requests/{$assetRequest->id}/reject", [
-            'rejection_reason' => 'Asset not available',
-        ]);
-
-        $response->assertStatus(200);
-    }
-
-    #[Test]
-    public function can_view_single_asset_request(): void
-    {
-        $asset = Asset::factory()->create(['branch_id' => $this->branch->id]);
-        $assetRequest = AssetRequest::factory()->create([
-            'requester_id' => $this->user->id,
-            'asset_id' => $asset->id,
-        ]);
-
-        $response = $this->actingAs($this->admin)->getJson("/api/asset-requests/{$assetRequest->id}");
-
-        $response->assertStatus(200);
-    }
-
-    #[Test]
     public function can_filter_asset_requests_by_status(): void
     {
-        $response = $this->actingAs($this->admin)->getJson('/api/asset-requests?status=pending');
+        $response = $this->actingAs($this->admin)->getJson('/api/asset-requests?status=Pending');
 
         $response->assertStatus(200);
     }

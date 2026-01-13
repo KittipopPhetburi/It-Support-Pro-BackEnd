@@ -99,6 +99,7 @@ class IncidentManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin)->putJson("/api/incidents/{$incident->id}", [
+            'title' => $incident->title,
             'status' => 'In Progress',
             'priority' => 'High',
         ]);
