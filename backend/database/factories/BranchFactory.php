@@ -13,10 +13,8 @@ class BranchFactory extends Factory
     {
         return [
             'name' => $this->faker->company(),
-            'code' => strtoupper($this->faker->unique()->lexify('BR???')),
             'address' => $this->faker->address(),
-            'phone' => $this->faker->phoneNumber(),
-            'is_active' => true,
+            'organization' => $this->faker->company(),
         ];
     }
 }
