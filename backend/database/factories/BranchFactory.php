@@ -16,7 +16,6 @@ class BranchFactory extends Factory
             'code' => strtoupper($this->faker->unique()->lexify('BR???')),
             'address' => $this->faker->address(),
             'phone' => $this->faker->phoneNumber(),
-            'email' => $this->faker->companyEmail(),
             'is_active' => true,
         ];
     }

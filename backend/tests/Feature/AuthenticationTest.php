@@ -20,7 +20,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/login', [
-            'email' => $user->email,
+            'identifier' => $user->email,
             'password' => 'password123',
         ]);
 
@@ -39,7 +39,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/login', [
-            'email' => $user->email,
+            'identifier' => $user->email,
             'password' => 'wrong-password',
         ]);
 
@@ -50,7 +50,7 @@ class AuthenticationTest extends TestCase
     public function user_cannot_login_with_nonexistent_email(): void
     {
         $response = $this->postJson('/api/login', [
-            'email' => 'nonexistent@example.com',
+            'identifier' => 'nonexistent@example.com',
             'password' => 'password',
         ]);
 
@@ -63,7 +63,7 @@ class AuthenticationTest extends TestCase
         $response = $this->postJson('/api/login', []);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email', 'password']);
+            ->assertJsonValidationErrors(['identifier', 'password']);
     }
 
     #[Test]

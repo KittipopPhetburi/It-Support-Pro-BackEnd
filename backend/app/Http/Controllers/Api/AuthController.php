@@ -99,7 +99,12 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        // Check if the token is a real PersonalAccessToken (not TransientToken from actingAs)
+        $token = $request->user()->currentAccessToken();
+        
+        if ($token && method_exists($token, 'delete')) {
+            $token->delete();
+        }
 
         return response()->json([
             'message' => 'ออกจากระบบสำเร็จ',
