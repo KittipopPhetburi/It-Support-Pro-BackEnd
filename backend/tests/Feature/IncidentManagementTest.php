@@ -100,6 +100,7 @@ class IncidentManagementTest extends TestCase
 
         $response = $this->actingAs($this->admin)->putJson("/api/incidents/{$incident->id}", [
             'status' => 'In Progress',
+            'priority' => 'High',
         ]);
 
         $response->assertStatus(200);
