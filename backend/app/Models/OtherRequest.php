@@ -6,6 +6,20 @@ use App\Traits\HasBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * OtherRequest Model - โมเดลคำขออื่นๆ (ทั่วไป/สั่งซื้อของ)
+ * 
+ * จัดการคำขอที่ไม่ใช่สินทรัพย์ในระบบ (เช่น ขอซื้อเม้าส์, ขอติดตั้งปลั๊กไฟ)
+ * 
+ * @property int $id
+ * @property int $requester_id ผู้ขอ
+ * @property string $title หัวข้อ
+ * @property string $item_name ชื่อสิ่งของ/บริการ
+ * @property string $status สถานะ
+ * @property datetime $request_date วันที่ขอ
+ * @property int|null $branch_id สาขา
+ * @property int|null $department_id แผนก
+ */
 class OtherRequest extends Model
 {
     use HasFactory, HasBranch;
@@ -49,21 +63,33 @@ class OtherRequest extends Model
         'received_at' => 'datetime',
     ];
 
+    /**
+     * ผู้ขอ (Requester)
+     */
     public function requester()
     {
         return $this->belongsTo(User::class, 'requester_id');
     }
 
+    /**
+     * สาขาที่สังกัด
+     */
     public function branch()
     {
         return $this->belongsTo(Branch::class);
     }
 
+    /**
+     * แผนกที่สังกัด
+     */
     public function department()
     {
         return $this->belongsTo(Department::class);
     }
 
+    /**
+     * สินทรัพย์ที่เกี่ยวข้อง (ถ้ามี)
+     */
     public function asset()
     {
         return $this->belongsTo(Asset::class);

@@ -6,6 +6,24 @@ use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * ServiceRequestController - จัดการคำขอบริการ (Service Request)
+ * 
+ * Extends BaseCrudController + override index/show + เพิ่ม approve/reject/startProgress/complete
+ * 
+ * Flow: Pending → Approved → In Progress → Completed
+ *                ↘ Rejected
+ * 
+ * Routes:
+ * - GET    /api/service-requests                     - รายการทั้งหมด (+ service, requester, approvedBy)
+ * - GET    /api/service-requests/{id}                - รายละเอียด
+ * - POST   /api/service-requests                     - สร้างคำขอ
+ * - PUT    /api/service-requests/{id}                - แก้ไข
+ * - POST   /api/service-requests/{id}/approve        - อนุมัติ
+ * - POST   /api/service-requests/{id}/reject         - ปฏิเสธ (ต้องมี reason)
+ * - POST   /api/service-requests/{id}/start-progress - เริ่มดำเนินการ
+ * - POST   /api/service-requests/{id}/complete       - เสร็จสิ้น
+ */
 class ServiceRequestController extends BaseCrudController
 {
     protected string $modelClass = ServiceRequest::class;

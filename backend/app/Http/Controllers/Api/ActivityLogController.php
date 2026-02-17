@@ -6,6 +6,25 @@ use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * ActivityLogController - บันทึกกิจกรรมในระบบ (Audit Log)
+ * 
+ * Extends BaseCrudController + override index/store + เพิ่ม statistics/security/error logs
+ * 
+ * ความสามารถ:
+ * - บันทึกทุกการกระทำพร้อม IP, User-Agent, Device info อัตโนมัติ
+ * - กำหนด severity (INFO/WARN/ERROR/CRITICAL) และ event_type อัตโนมัติจาก action
+ * - filter ตาม module, action, severity, event_type, date range
+ * - แยก security logs (LOGIN/LOGOUT/ACCESS_DENIED) และ error logs (ERROR/CRITICAL)
+ * 
+ * Routes:
+ * - GET    /api/activity-logs              - รายการทั้งหมด (filter + pagination)
+ * - POST   /api/activity-logs              - บันทึก log ใหม่ (auto-fill IP, UA, severity, event_type)
+ * - GET    /api/activity-logs/statistics    - สถิติ log (by severity/action/module/user)
+ * - GET    /api/activity-logs/security      - security logs เท่านั้น
+ * - GET    /api/activity-logs/errors        - error logs เท่านั้น
+ * - DELETE /api/activity-logs/clear-old     - ลบ logs เก่า
+ */
 class ActivityLogController extends BaseCrudController
 {
     protected string $modelClass = ActivityLog::class;
@@ -38,7 +57,11 @@ class ActivityLogController extends BaseCrudController
     ];
 
     /**
-     * Override index เพื่อ include user และเรียงตาม timestamp ล่าสุด
+     * ดึงรายการ logs ทั้งหมด
+     * 
+     * GET /api/activity-logs
+     * Filters: ?module=, ?userId=, ?action=, ?severity=, ?event_type=, ?startDate=, ?endDate=, ?security=true, ?errors=true
+     * รองรับ pagination: ?per_page= หรือ ?limit=
      */
     public function index(Request $request)
     {

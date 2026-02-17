@@ -10,6 +10,23 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Config;
 
+/**
+ * OrganizationNotificationController - ตั้งค่าการแจ้งเตือนระดับองค์กร
+ * 
+ * ไม่ extends BaseCrudController - ใช้ Controller ตรง
+ * จัดการตั้งค่า notification channels ของแต่ละ branch: Email, Telegram, LINE
+ * 
+ * กระบวนการ:
+ * - initialize: สร้างค่าเริ่มต้นสำหรับ branch ใหม่
+ * - update: อัปเดตการตั้งค่า channels (email SMTP, Telegram bot, LINE)
+ * - testNotification: ทดสอบส่งแต่ละ channel (email/telegram/line)
+ * 
+ * Routes:
+ * - POST   /api/organization-notifications/initialize              - สร้างค่าเริ่มต้น
+ * - GET    /api/organization-notifications                          - ดูทั้งหมด (group by branch)
+ * - PUT    /api/organization-notifications/{id}                     - อัปเดตการตั้งค่า
+ * - POST   /api/organization-notifications/{id}/test/{channel}      - ทดสอบ channel
+ */
 class OrganizationNotificationController extends Controller
 {
     public function initialize(Request $request)

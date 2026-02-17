@@ -12,6 +12,31 @@ use Illuminate\Support\Facades\Notification;
 use App\Notifications\IncidentNotification;
 use App\Channels\TelegramChannel;
 
+/**
+ * IncidentController - จัดการงานแจ้งซ่อม (Incident Management)
+ * 
+ * Extends BaseCrudController + override store/update/show/index
+ * 
+ * กระบวนการหลัก:
+ * - สร้าง incident → เปลี่ยน asset status เป็น Maintenance + ส่ง Notification
+ * - อัปเดต incident → auto-set resolved_at/closed_at + คืนสถานะ asset + สร้าง MaintenanceHistory
+ * - Resolved → ส่ง NewSurveyAvailable ให้ผู้แจ้ง (ความพึงพอใจ)
+ * - Closed → คืน asset status กลับสู่ค่าเดิม + บันทึกประวัติการซ่อม
+ * 
+ * Broadcasting: IncidentUpdated, AssetUpdated, NewSurveyAvailable
+ * Notifications: IncidentNotification (Telegram + Database)
+ * 
+ * Routes:
+ * - GET    /api/incidents              - รายการทั้งหมด (พร้อม assignee, requester)
+ * - GET    /api/incidents/{id}         - รายละเอียด
+ * - POST   /api/incidents              - สร้าง incident ใหม่
+ * - PUT    /api/incidents/{id}         - อัปเดต incident
+ * - DELETE /api/incidents/{id}         - ลบ incident
+ * - GET    /api/incidents/statistics   - สถิติ
+ * - GET    /api/incidents/my           - รายการที่ฉันแจ้ง
+ * - GET    /api/incidents/assigned     - รายการที่มอบหมายให้ฉัน
+ * - POST   /api/incidents/{id}/assign  - มอบหมายงาน
+ */
 class IncidentController extends BaseCrudController
 {
     protected string $modelClass = Incident::class;
@@ -116,7 +141,14 @@ class IncidentController extends BaseCrudController
     ];
 
     /**
-     * Map frontend field names to backend field names
+     * แปลงชื่อ field จาก frontend เป็นชื่อ backend
+     * 
+     * ตัวอย่าง: assigned_to → assignee_id
+     * และลบ field ที่ไม่มีใน DB (assigned_to_name, requester, etc.)
+     * ถ้าไม่มี branch_id จะดึงจาก user ที่ login
+     * 
+     * @param Request $request
+     * @return array ข้อมูลที่แปลงแล้ว
      */
     protected function mapRequestData(Request $request): array
     {
@@ -156,6 +188,19 @@ class IncidentController extends BaseCrudController
         return $data;
     }
 
+    /**
+     * สร้าง incident ใหม่
+     * 
+     * POST /api/incidents
+     * กระบวนการ:
+     * 1. mapRequestData() - แปลงชื่อ field
+     * 2. validate + create Incident
+     * 3. ถ้ามี asset_id → เปลี่ยน asset status เป็น Maintenance + เก็บ previous_asset_status
+     * 4. broadcast IncidentUpdated('created') + AssetUpdated
+     * 5. ส่ง IncidentNotification ผ่าน Telegram
+     * 
+     * @return JsonResponse 201
+     */
     public function store(Request $request)
     {
         // Map frontend field names to backend
@@ -231,6 +276,17 @@ class IncidentController extends BaseCrudController
         return response()->json($response, 201);
     }
 
+    /**
+     * อัปเดต incident
+     * 
+     * PUT /api/incidents/{id}
+     * กระบวนการ:
+     * 1. mapRequestData() + validate
+     * 2. ถ้า status เป็น Resolved → set resolved_at + broadcast NewSurveyAvailable
+     * 3. ถ้า status เป็น Closed → set closed_at + คืน asset status + สร้าง MaintenanceHistory
+     * 4. broadcast IncidentUpdated('updated')
+     * 5. ส่ง IncidentNotification (resolved/closed/updated)
+     */
     public function update(Request $request, $id)
     {
         $model = Incident::findOrFail($id);
@@ -365,6 +421,13 @@ class IncidentController extends BaseCrudController
         return response()->json($response);
     }
 
+    /**
+     * ดึงรายละเอียด incident
+     * 
+     * GET /api/incidents/{id}
+     * โหลด assignee, requester, satisfactionSurvey
+     * แนบ assigned_to_name เป็น flat field
+     */
     public function show($id)
     {
         $model = Incident::with(['assignee', 'requester', 'satisfactionSurvey'])->findOrFail($id);
@@ -382,6 +445,14 @@ class IncidentController extends BaseCrudController
         return response()->json($response);
     }
 
+    /**
+     * ดึงรายการ incidents ทั้งหมด
+     * 
+     * GET /api/incidents
+     * โหลด assignee, requester, satisfactionSurvey
+     * รองรับ pagination: ?per_page=20
+     * แนบ assigned_to_name เป็น flat field ทุกรายการ
+     */
     public function index(Request $request)
     {
         $query = Incident::with(['assignee', 'requester', 'satisfactionSurvey']);

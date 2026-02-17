@@ -5,6 +5,20 @@ namespace App\Http\Controllers\Api;
 use App\Models\Holiday;
 use Illuminate\Http\Request;
 
+/**
+ * HolidayController - จัดการวันหยุดและวันลา
+ * 
+ * Extends BaseCrudController + override index + เพิ่ม types/forSlaCalculation
+ * รองรับ: วันหยุดราชการ, วันหยุดบริษัท, ลาป่วย, ลาพักร้อน, ลากิจ
+ * 
+ * Routes:
+ * - GET    /api/holidays                  - รายการทั้งหมด (filter type, user_id, date range)
+ * - POST   /api/holidays                  - สร้างวันหยุด
+ * - PUT    /api/holidays/{id}             - แก้ไข
+ * - DELETE /api/holidays/{id}             - ลบ
+ * - GET    /api/holidays/types            - ประเภทวันหยุดทั้งหมด
+ * - GET    /api/holidays/sla-calculation  - ดึงวันหยุดสำหรับคำนวณ SLA
+ */
 class HolidayController extends BaseCrudController
 {
     protected string $modelClass = Holiday::class;

@@ -5,6 +5,19 @@ namespace App\Http\Controllers\Api;
 use App\Models\Problem;
 use Illuminate\Http\Request;
 
+/**
+ * ProblemController - จัดการปัญหา (Problem Management)
+ * 
+ * Extends BaseCrudController + override index/show/store/update
+ * เชื่อมโยง incidents หลายตัวกับ problem เดียว (many-to-many)
+ * 
+ * Routes:
+ * - GET    /api/problems           - รายการทั้งหมด (filter status, priority)
+ * - GET    /api/problems/{id}      - รายละเอียด + incidents ที่เกี่ยวข้อง
+ * - POST   /api/problems           - สร้าง problem + sync incidents
+ * - PUT    /api/problems/{id}      - แก้ไข + sync incidents
+ * - DELETE /api/problems/{id}      - ลบ
+ */
 class ProblemController extends BaseCrudController
 {
     protected string $modelClass = Problem::class;

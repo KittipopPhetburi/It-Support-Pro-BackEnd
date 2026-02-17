@@ -5,6 +5,19 @@ namespace App\Http\Controllers\Api;
 use App\Models\BusinessHour;
 use Illuminate\Http\Request;
 
+/**
+ * BusinessHourController - จัดการเวลาทำการ (Business Hours)
+ * 
+ * Extends BaseCrudController + override update + เพิ่ม isOpen/getByDay/bulkUpdate
+ * แปลงรูปแบบเวลา (H:i / H:i:s) อัตโนมัติ
+ * 
+ * Routes:
+ * - GET    /api/business-hours              - รายการทั้งหมด (7 วัน)
+ * - PUT    /api/business-hours/{id}         - แก้ไข (normalize time format)
+ * - GET    /api/business-hours/is-open      - เช็คว่าตอนนี้เปิดอยู่ไหม
+ * - GET    /api/business-hours/day/{day}    - ดูเวลาทำการตามวัน (0-6)
+ * - PUT    /api/business-hours/bulk-update  - อัปเดตทั้ง 7 วันพร้อมกัน
+ */
 class BusinessHourController extends BaseCrudController
 {
     protected string $modelClass = BusinessHour::class;

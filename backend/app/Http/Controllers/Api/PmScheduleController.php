@@ -11,6 +11,24 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
+/**
+ * PmScheduleController - จัดการตารางบำรุงรักษาเชิงป้องกัน (PM Schedule)
+ * 
+ * ไม่ extends BaseCrudController - ใช้ Controller ตรง
+ * จัดการ checklist items + execute PM + statistics + auto update overdue
+ * 
+ * Flow: Scheduled → In Progress → Completed
+ *                                ↘ Overdue (auto เมื่อเลยกำหนด)
+ * 
+ * Routes:
+ * - GET    /api/pm-schedules                    - รายการ (filter project, status, asset, date range)
+ * - POST   /api/pm-schedules                    - สร้าง + default checklist ตาม asset type
+ * - GET    /api/pm-schedules/{pmSchedule}       - รายละเอียด + checklist
+ * - PUT    /api/pm-schedules/{pmSchedule}       - แก้ไข + sync checklist
+ * - DELETE /api/pm-schedules/{pmSchedule}       - ลบ + ลบ checklist
+ * - POST   /api/pm-schedules/{pmSchedule}/execute  - ดำเนินการ PM (update checklist + complete)
+ * - GET    /api/pm-schedules/statistics         - สถิติ PM
+ */
 class PmScheduleController extends Controller
 {
     /**

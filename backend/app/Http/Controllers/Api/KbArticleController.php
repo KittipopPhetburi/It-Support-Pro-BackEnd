@@ -5,6 +5,24 @@ namespace App\Http\Controllers\Api;
 use App\Models\KbArticle;
 use Illuminate\Http\Request;
 
+/**
+ * KbArticleController - จัดการฐานความรู้ (Knowledge Base)
+ * 
+ * Extends BaseCrudController + override show + เพิ่ม popular/recent/categories/helpful/notHelpful
+ * เพิ่ม view count อัตโนมัติเมื่อดูบทความ
+ * 
+ * Routes:
+ * - GET    /api/kb-articles              - รายการทั้งหมด
+ * - GET    /api/kb-articles/{id}         - ดูบทความ (เพิ่ม views +1)
+ * - POST   /api/kb-articles              - สร้างบทความ
+ * - PUT    /api/kb-articles/{id}         - แก้ไข
+ * - DELETE /api/kb-articles/{id}         - ลบ
+ * - GET    /api/kb-articles/popular      - บทความยอดนิยม (top 10 views)
+ * - GET    /api/kb-articles/recent       - บทความล่าสุด (top 10)
+ * - GET    /api/kb-articles/categories   - หมวดหมู่ทั้งหมด
+ * - POST   /api/kb-articles/{id}/helpful     - กด helpful +1
+ * - POST   /api/kb-articles/{id}/not-helpful - กด not_helpful +1
+ */
 class KbArticleController extends BaseCrudController
 {
     protected string $modelClass = KbArticle::class;

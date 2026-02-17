@@ -10,6 +10,20 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * RoleController - จัดการบทบาท (Role Management)
+ * 
+ * ไม่ extends BaseCrudController - ใช้ Controller ตรง
+ * จัดการ Role + RoleMenuPermission ใน transaction
+ * ป้องกันลบ/แก้ชื่อ default roles (Admin, Technician, Helpdesk, Purchase, User)
+ * 
+ * Routes:
+ * - GET    /api/roles           - รายการ roles (+ user_count, is_default)
+ * - GET    /api/roles/{role}    - รายละเอียด role + permissions
+ * - POST   /api/roles           - สร้าง role + permissions ใน transaction
+ * - PUT    /api/roles/{role}    - แก้ไขชื่อ/display_name (ห้ามแก้ชื่อ default)
+ * - DELETE /api/roles/{role}    - ลบ role (ห้าม default + ต้องไม่มี user ใช้)
+ */
 class RoleController extends Controller
 {
     /**

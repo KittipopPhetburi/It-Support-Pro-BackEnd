@@ -5,6 +5,27 @@ namespace App\Http\Controllers\Api;
 use App\Models\Asset;
 use Illuminate\Http\Request;
 
+/**
+ * AssetController - จัดการสินทรัพย์ (Asset Management)
+ * 
+ * Extends BaseCrudController + override index/show/update + เพิ่ม methods
+ * 
+ * ความสามารถพิเศษ:
+ * - รองรับการติดตามสถานะรายตัว serial (serial_mapping)
+ * - Bulk create: สร้างหลาย asset พร้อมกัน + เช็ค serial ซ้ำ
+ * - ซิงค์สถานะทั้ง asset เมื่อเปลี่ยน status (อัปเดต serial_mapping ทุกตัว)
+ * 
+ * Routes:
+ * - GET    /api/assets                         - รายการทั้งหมด (พร้อม branch)
+ * - GET    /api/assets/{id}                    - รายละเอียด + ประวัติซ่อม/ยืม
+ * - POST   /api/assets                         - สร้าง asset
+ * - PUT    /api/assets/{id}                    - แก้ไข + sync serial status
+ * - DELETE /api/assets/{id}                    - ลบ asset
+ * - GET    /api/assets/statistics               - จำนวนตามสถานะ
+ * - GET    /api/assets/{id}/maintenance-history  - ประวัติการซ่อม
+ * - POST   /api/assets/bulk                     - สร้างหลายรายการ
+ * - POST   /api/assets/check-serial-numbers     - เช็ค serial ซ้ำ
+ */
 class AssetController extends BaseCrudController
 {
     protected string $modelClass = Asset::class;
@@ -43,8 +64,11 @@ class AssetController extends BaseCrudController
     ];
 
     /**
-     * Override index to load branch relation for organization display
-     * and include available_quantity for status display
+     * ดึงรายการ assets ทั้งหมด
+     * 
+     * GET /api/assets
+     * โหลด branch relation + รองรับ pagination: ?per_page=20
+     * available_quantity จะถูกคำนวณจาก accessor ของ Model
      */
     public function index(\Illuminate\Http\Request $request)
     {
@@ -60,8 +84,10 @@ class AssetController extends BaseCrudController
     }
 
     /**
-     * Display the specified asset with maintenance history, borrowing history,
-     * and serial statuses for individual serial tracking
+     * ดึงรายละเอียด asset พร้อมประวัติการซ่อมและการยืม
+     * 
+     * GET /api/assets/{id}
+     * โหลด: maintenanceHistories, borrowingHistories + serial statuses
      */
     public function show($id)
     {
@@ -79,7 +105,9 @@ class AssetController extends BaseCrudController
     }
 
     /**
-     * Get maintenance history for a specific asset
+     * ดึงประวัติการซ่อมของ asset
+     * 
+     * GET /api/assets/{id}/maintenance-history
      */
     public function maintenanceHistory($id)
     {
@@ -89,7 +117,9 @@ class AssetController extends BaseCrudController
     }
 
     /**
-     * Get borrowing history for a specific asset
+     * ดึงประวัติการยืม/เบิกของ asset
+     * 
+     * GET /api/assets/{id}/borrowing-history
      */
     public function borrowingHistory($id)
     {
@@ -98,6 +128,13 @@ class AssetController extends BaseCrudController
         return response()->json($history);
     }
 
+    /**
+     * สถิติรวมของ assets
+     * 
+     * GET /api/assets/statistics
+     * คืนจำนวนตาม status (Available, In Use, On Loan, Maintenance, Retired)
+     * และตาม category (Hardware, Software)
+     */
     public function statistics()
     {
         return response()->json([
@@ -113,7 +150,11 @@ class AssetController extends BaseCrudController
     }
 
     /**
-     * Update asset with serial status sync logic
+     * แก้ไขข้อมูล asset
+     * 
+     * PUT /api/assets/{id}
+     * ถ้า status เปลี่ยน → sync status ไปทุกตัวใน serial_mapping
+     * เพื่อให้ทุก serial มีสถานะตรงกัน
      */
     public function update(Request $request, $id)
     {
@@ -149,7 +190,16 @@ class AssetController extends BaseCrudController
     }
 
     /**
-     * Store multiple assets at once (Bulk Create)
+     * สร้างหลาย assets พร้อมกัน (Bulk Create)
+     * 
+     * POST /api/assets/bulk
+     * รับ common_data (ข้อมูลร่วม) + serial_numbers[]
+     * - เช็ค serial ซ้ำก่อนสร้าง
+     * - สร้าง asset 1 ตัวต่อ 1 serial + QR code
+     * - ใช้ transaction เพื่อความถูกต้อง
+     * - broadcast AssetUpdated('created') ทุกตัว
+     * 
+     * @return JsonResponse 201 {success, count, assets} หรือ 422 (ซ้ำ)
      */
     public function bulkStore(Request $request)
     {
@@ -230,7 +280,10 @@ class AssetController extends BaseCrudController
     }
 
     /**
-     * Check if serial numbers exist (for validation before submit)
+     * เช็ค serial numbers ซ้ำก่อน submit
+     * 
+     * POST /api/assets/check-serial-numbers
+     * รับ serial_numbers[] แล้วคืนรายการที่ซ้ำ
      */
     public function checkSerialNumbers(Request $request)
     {

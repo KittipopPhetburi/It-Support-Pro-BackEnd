@@ -7,6 +7,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Config;
 
+/**
+ * SystemSettingController - ตั้งค่าระบบ (System Settings)
+ * 
+ * Extends BaseCrudController + เพิ่ม testEmail
+ * เก็บค่า settings เป็น key-value pairs แยกตาม category
+ * 
+ * Routes:
+ * - GET    /api/system-settings              - รายการทั้งหมด
+ * - POST   /api/system-settings              - สร้าง
+ * - PUT    /api/system-settings/{id}         - แก้ไข
+ * - DELETE /api/system-settings/{id}         - ลบ
+ * - POST   /api/system-settings/test-email   - ทดสอบส่ง email ด้วย SMTP settings จาก DB
+ */
 class SystemSettingController extends BaseCrudController
 {
     protected string $modelClass = SystemSetting::class;

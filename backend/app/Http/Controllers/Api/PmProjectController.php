@@ -7,6 +7,19 @@ use App\Models\PmProject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * PmProjectController - จัดการโครงการ PM (Preventive Maintenance Projects)
+ * 
+ * ไม่ extends BaseCrudController - ใช้ Controller ตรง
+ * รองรับ file upload (contract_file, tor_file) + auto generate project_code
+ * 
+ * Routes:
+ * - GET    /api/pm-projects               - รายการทั้งหมด (filter status, organization, search) + stats
+ * - POST   /api/pm-projects               - สร้างโครงการ + upload files
+ * - GET    /api/pm-projects/{pmProject}    - รายละเอียด
+ * - PUT    /api/pm-projects/{pmProject}    - แก้ไข + replace files
+ * - DELETE /api/pm-projects/{pmProject}    - ลบ + ลบ files
+ */
 class PmProjectController extends Controller
 {
     public function index(Request $request)

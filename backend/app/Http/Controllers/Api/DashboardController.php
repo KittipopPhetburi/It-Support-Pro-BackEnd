@@ -14,10 +14,28 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
+/**
+ * DashboardController - ภาพรวมระบบ (Dashboard)
+ * 
+ * ไม่ extends BaseCrudController (ไม่มี CRUD)
+ * ให้ข้อมูลสรุปสำหรับแสดงบนหน้า Dashboard
+ * 
+ * Routes (prefix /api/dashboard):
+ * - GET /overview              - ภาพรวม: จำนวน incidents, assets, users, problems, requests ที่ pending
+ * - GET /incidents-trend       - แนวโน้ม incidents ?days=30
+ * - GET /incidents-by-category - แยกตามหมวดหมู่
+ * - GET /incidents-by-priority - แยกตามความสำคัญ
+ * - GET /top-technicians       - ช่างที่ resolved มากสุด ?limit=10
+ * - GET /recent-incidents      - incidents ล่าสุด ?limit=10
+ * - GET /sla-compliance        - อัตราการปฏิบัติตาม SLA (met/breached/rate%)
+ */
 class DashboardController extends Controller
 {
     /**
      * Overview - ภาพรวมระบบ
+     * 
+     * GET /api/dashboard/overview
+     * คืนจำนวนรวมของ incidents (ตามสถานะ), assets, users, problems, pending requests
      */
     public function overview()
     {
@@ -53,6 +71,8 @@ class DashboardController extends Controller
 
     /**
      * Incidents Trend - แนวโน้ม Incidents
+     * 
+     * GET /api/dashboard/incidents-trend?days=30
      */
     public function incidentsTrend(Request $request)
     {
@@ -76,6 +96,8 @@ class DashboardController extends Controller
 
     /**
      * Incidents by Category - แยกตามหมวดหมู่
+     * 
+     * GET /api/dashboard/incidents-by-category
      */
     public function incidentsByCategory()
     {
@@ -89,6 +111,8 @@ class DashboardController extends Controller
 
     /**
      * Incidents by Priority - แยกตามความสำคัญ
+     * 
+     * GET /api/dashboard/incidents-by-priority
      */
     public function incidentsByPriority()
     {
@@ -102,6 +126,8 @@ class DashboardController extends Controller
 
     /**
      * Top Technicians - ช่างยอดเยี่ยม
+     * 
+     * GET /api/dashboard/top-technicians?limit=10
      */
     public function topTechnicians(Request $request)
     {
@@ -120,6 +146,8 @@ class DashboardController extends Controller
 
     /**
      * Recent Incidents - Incidents ล่าสุด
+     * 
+     * GET /api/dashboard/recent-incidents?limit=10
      */
     public function recentIncidents(Request $request)
     {
@@ -135,6 +163,9 @@ class DashboardController extends Controller
 
     /**
      * SLA Compliance - การปฏิบัติตาม SLA
+     * 
+     * GET /api/dashboard/sla-compliance
+     * คืน: total, met, breached, compliance_rate%
      */
     public function slaCompliance()
     {

@@ -4,6 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Notification;
 
+/**
+ * NotificationController - จัดการการแจ้งเตือน (Notification CRUD)
+ * 
+ * Extends BaseCrudController โดยไม่มี override
+ * ใช้ CRUD จาก BaseCrudController ตรง
+ * 
+ * Routes:
+ * - GET    /api/notifications           - รายการทั้งหมด
+ * - GET    /api/notifications/{id}      - รายละเอียด
+ * - POST   /api/notifications           - สร้าง
+ * - PUT    /api/notifications/{id}      - แก้ไข
+ * - DELETE /api/notifications/{id}      - ลบ
+ */
 class NotificationController extends BaseCrudController
 {
     protected string $modelClass = Notification::class;

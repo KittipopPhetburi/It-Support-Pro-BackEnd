@@ -7,6 +7,23 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * PmSchedule Model - โมเดลกำหนดการ PM
+ * 
+ * จัดการตารางนัดหมายการบำรุงรักษา Preventive Maintenance
+ * 
+ * @property int $id
+ * @property int $asset_id สินทรัพย์ที่ต้องบำรุงรักษา
+ * @property string $frequency ความถี่ (Weekly, Monthly, Quarterly, etc.)
+ * @property int|null $assigned_to ผู้รับผิดชอบ (Technician)
+ * @property date $scheduled_date วันที่นัดหมาย
+ * @property date $next_scheduled_date นัดหมายครั้งถัดไป
+ * @property string $status สถานะ (Scheduled, Completed, Overdue, Cancelled)
+ * @property string $check_result ผลการตรวจสอบ
+ * @property array $issues_found ปัญหาที่พบ (JSON)
+ * @property datetime|null $completed_at เวลาที่ทำเสร็จ
+ * @property int|null $completed_by ผู้ที่ทำรายการเสร็จ
+ */
 class PmSchedule extends Model
 {
     use HasFactory;
@@ -36,7 +53,7 @@ class PmSchedule extends Model
     ];
 
     /**
-     * Get the asset that this PM schedule is for.
+     * สินทรัพย์ที่เข้า PM
      */
     public function asset(): BelongsTo
     {
@@ -44,7 +61,7 @@ class PmSchedule extends Model
     }
 
     /**
-     * Get the technician assigned to this PM.
+     * ช่างที่ได้รับมอบหมาย
      */
     public function assignedTechnician(): BelongsTo
     {
@@ -52,7 +69,7 @@ class PmSchedule extends Model
     }
 
     /**
-     * Get the user who completed this PM.
+     * ผู้บันทึกการทำงานเสร็จสิ้น
      */
     public function completedByUser(): BelongsTo
     {
@@ -60,7 +77,7 @@ class PmSchedule extends Model
     }
 
     /**
-     * Get the checklist items for this PM.
+     * รายการ Checklist การตรวจสอบ
      */
     public function checklistItems(): HasMany
     {
@@ -68,7 +85,7 @@ class PmSchedule extends Model
     }
 
     /**
-     * Calculate the next scheduled date based on frequency.
+     * คำนวณวันนัดหมายครั้งถัดไปตามความถี่
      */
     public function calculateNextScheduledDate(): ?string
     {
@@ -91,7 +108,7 @@ class PmSchedule extends Model
     }
 
     /**
-     * Check if the PM is overdue.
+     * ตรวจสอบว่าเกินกำหนดหรือไม่
      */
     public function isOverdue(): bool
     {
@@ -101,7 +118,7 @@ class PmSchedule extends Model
     }
 
     /**
-     * Scope for filtering by status.
+     * Scope: กรองตามสถานะ
      */
     public function scopeStatus($query, $status)
     {
@@ -109,7 +126,7 @@ class PmSchedule extends Model
     }
 
     /**
-     * Scope for filtering overdue PMs.
+     * Scope: กรองรายการที่เกินกำหนด
      */
     public function scopeOverdue($query)
     {
@@ -119,7 +136,7 @@ class PmSchedule extends Model
     }
 
     /**
-     * Scope for upcoming PMs within days.
+     * Scope: รายการที่กำลังจะมาถึงในอีก $days วัน
      */
     public function scopeUpcoming($query, $days = 7)
     {
