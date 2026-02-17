@@ -5,6 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Holiday Model - โมเดลวันหยุด
+ * 
+ * จัดการวันหยุดในระบบ ทั้งวันหยุดราชการ วันหยุดบริษัท และวันลาส่วนบุคคล
+ * 
+ * @property int $id
+ * @property string $name ชื่อวันหยุด
+ * @property string $type ประเภท (public_holiday, company_holiday, sick_leave, etc.)
+ * @property date $date วันที่เริ่ม
+ * @property date $end_date วันที่สิ้นสุด
+ * @property boolean $is_recurring เป็นวันหยุดประจำปีหรือไม่
+ * @property int|null $user_id ผู้ใช้งาน (กรณีลาส่วนบุคคล)
+ */
 class Holiday extends Model
 {
     use HasFactory;

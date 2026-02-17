@@ -6,6 +6,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * PmChecklistItem Model - โมเดลรายการตรวจเช็ค PM
+ * 
+ * รายการตรวจสอบย่อยในแผนบำรุงรักษา (PM Schedule)
+ * 
+ * @property int $id
+ * @property int $pm_schedule_id แผนการบำรุงรักษา
+ * @property string $title หัวข้อตรวจสอบ
+ * @property string $description รายละเอียด
+ * @property boolean $is_completed สถานะทำเสร็จ
+ * @property string|null $notes บันทึกผล
+ * @property datetime|null $completed_at เวลาที่ทำเสร็จ
+ * @property int $sort_order ลำดับ
+ */
 class PmChecklistItem extends Model
 {
     use HasFactory;
@@ -26,7 +40,7 @@ class PmChecklistItem extends Model
     ];
 
     /**
-     * Get the PM schedule that this checklist item belongs to.
+     * แผนการบำรุงรักษาที่รายการนี้สังกัด
      */
     public function pmSchedule(): BelongsTo
     {

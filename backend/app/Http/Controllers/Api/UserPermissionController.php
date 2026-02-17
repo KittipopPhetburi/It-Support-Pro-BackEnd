@@ -10,6 +10,17 @@ use App\Models\UserMenuPermission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * UserPermissionController - จัดการสิทธิ์รายบุคคล (User-specific Permissions)
+ * 
+ * ไม่ extends BaseCrudController - ใช้ Controller ตรง
+ * สิทธิ์ของ user override สิทธิ์ของ role (user permission > role permission)
+ * 
+ * Routes:
+ * - GET    /api/users/{userId}/permissions         - ดูสิทธิ์ merged (role + user override)
+ * - PUT    /api/users/{userId}/permissions         - อัปเดตสิทธิ์รายบุคคล (override role)
+ * - POST   /api/users/{userId}/permissions/reset   - reset ลบ overrides ทั้งหมด (กลับไปใช้ role)
+ */
 class UserPermissionController extends Controller
 {
     /**

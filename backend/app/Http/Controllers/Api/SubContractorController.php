@@ -4,6 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\SubContractor;
 
+/**
+ * SubContractorController - จัดการผู้รับเหมาช่วง (Sub-Contractor)
+ * 
+ * Extends BaseCrudController โดยไม่มี override
+ * ใช้ CRUD จาก BaseCrudController ตรง
+ * 
+ * Routes:
+ * - GET    /api/sub-contractors           - รายการทั้งหมด
+ * - GET    /api/sub-contractors/{id}      - รายละเอียด
+ * - POST   /api/sub-contractors           - สร้าง
+ * - PUT    /api/sub-contractors/{id}      - แก้ไข
+ * - DELETE /api/sub-contractors/{id}      - ลบ
+ */
 class SubContractorController extends BaseCrudController
 {
     protected string $modelClass = SubContractor::class;

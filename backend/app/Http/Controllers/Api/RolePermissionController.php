@@ -9,6 +9,17 @@ use App\Models\RoleMenuPermission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * RolePermissionController - จัดการสิทธิ์ตาม Role (Role-Menu Permissions)
+ * 
+ * ไม่ extends BaseCrudController - ใช้ Controller ตรง
+ * จัดการ RoleMenuPermission: ดู/อัปเดต/reset สิทธิ์ของแต่ละ role ต่อ menu
+ * 
+ * Routes:
+ * - GET    /api/roles/{roleId}/permissions              - ดูสิทธิ์ของ role (merge กับ menus ทั้งหมด)
+ * - PUT    /api/roles/{roleId}/permissions              - อัปเดตสิทธิ์ (upsert ใน transaction)
+ * - POST   /api/roles/{roleId}/permissions/reset-default - reset เป็นค่า default จาก seeder
+ */
 class RolePermissionController extends Controller
 {
     /**

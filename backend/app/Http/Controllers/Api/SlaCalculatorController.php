@@ -10,6 +10,26 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * SlaCalculatorController - คำนวณ SLA (SLA Calculator)
+ * 
+ * ไม่ extends BaseCrudController - ใช้ Controller ตรง
+ * ใช้ SlaCalculatorService สำหรับคำนวณเวลา business hours
+ * 
+ * ความสามารถ:
+ * - คำนวณ SLA status ของ incident (met/breached/warning)
+ * - คำนวณ business minutes ระหว่าง 2 timestamps
+ * - คำนวณ deadline จาก priority
+ * - เช็คว่าอยู่ใน business hours หรือไม่
+ * 
+ * Routes:
+ * - GET    /api/sla/calculate/{incidentId}        - คำนวณ SLA ของ incident
+ * - POST   /api/sla/calculate                      - คำนวณ SLA จาก custom params
+ * - POST   /api/sla/business-minutes               - คำนวณ business minutes
+ * - POST   /api/sla/deadline                        - คำนวณ deadline
+ * - GET    /api/sla/is-business-hours               - เช็ค business hours
+ * - GET    /api/sla/open-incidents                   - SLA summary ของ open incidents ทั้งหมด
+ */
 class SlaCalculatorController extends Controller
 {
     protected SlaCalculatorService $slaCalculator;

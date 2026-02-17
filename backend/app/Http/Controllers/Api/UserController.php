@@ -9,6 +9,19 @@ use App\Events\UserUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
+/**
+ * UserController - จัดการผู้ใช้ในระบบ
+ * 
+ * Extends BaseCrudController และ override index/show/store/update
+ * 
+ * Routes:
+ * - GET    /api/users           - รายชื่อ users (พร้อม branch/department, filter role/status)
+ * - GET    /api/users/{id}      - รายละเอียด user + permissions
+ * - POST   /api/users           - สร้าง user ใหม่ + broadcast UserUpdated
+ * - PUT    /api/users/{id}      - แก้ไข user (unique check username/email ยกเว้นตัวเอง)
+ * - DELETE /api/users/{id}      - ลบ user (ใช้จาก BaseCrud)
+ * - GET    /api/technicians     - ดึง users ที่มี role = Technician
+ */
 class UserController extends BaseCrudController
 {
     protected string $modelClass = User::class;
@@ -39,6 +52,14 @@ class UserController extends BaseCrudController
         'status' => 'sometimes|nullable|string|in:Active,Inactive',
     ];
 
+    /**
+     * ดึงรายชื่อ users ทั้งหมด
+     * 
+     * GET /api/users
+     * - โหลด branch, department
+     * - filter: ?role=Technician, ?status=Active
+     * - แนบ role_permissions ให้แต่ละ user
+     */
     public function index(Request $request)
     {
         $query = User::with(['branch', 'department']);
@@ -63,6 +84,12 @@ class UserController extends BaseCrudController
         return response()->json($users);
     }
 
+    /**
+     * ดึงรายละเอียด user ตาม ID
+     * 
+     * GET /api/users/{id}
+     * โหลด branch/department + แนบ role_permissions
+     */
     public function show($id)
     {
         $user = User::with(['branch', 'department'])->findOrFail($id);
@@ -70,6 +97,16 @@ class UserController extends BaseCrudController
         return response()->json($user);
     }
 
+    /**
+     * สร้าง user ใหม่
+     * 
+     * POST /api/users
+     * - hash password อัตโนมัติ
+     * - default status = Active
+     * - broadcast event UserUpdated('created')
+     * 
+     * @return JsonResponse 201
+     */
     public function store(Request $request)
     {
         $data = $request->validate($this->validationRules);
@@ -91,6 +128,14 @@ class UserController extends BaseCrudController
         return response()->json($user, 201);
     }
 
+    /**
+     * แก้ไขข้อมูล user
+     * 
+     * PUT /api/users/{id}
+     * - unique check: username/email (ยกเว้นตัวเอง)
+     * - password: เปลี่ยนเฉพาะเมื่อส่งมา, ถ้าว่างจะไม่เปลี่ยน
+     * - broadcast event UserUpdated('updated')
+     */
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
@@ -120,6 +165,12 @@ class UserController extends BaseCrudController
         return response()->json($user);
     }
 
+    /**
+     * ดึง users ที่มี role = Technician
+     * 
+     * GET /api/technicians
+     * คืนเฉพาะ id, name (สำหรับใช้ใน dropdown เลือกช่าง)
+     */
     public function getTechnicians()
     {
         $technicians = User::where('role', 'Technician')
@@ -131,7 +182,10 @@ class UserController extends BaseCrudController
     }
 
     /**
-     * Helper: Attach role permissions to user
+     * Helper: แนบ role permissions ให้ user (ดึงจากตาราง role_menu_permissions)
+     * 
+     * @param User $user
+     * @return User พร้อม role_permissions
      */
     private function attachRolePermissions(User $user)
     {

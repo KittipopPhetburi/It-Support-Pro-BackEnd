@@ -5,6 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * ActivityLog Model - โมเดลบันทึกกิจกรรม
+ * 
+ * บันทึกการกระทำต่างๆ ของผู้ใช้ในระบบเพื่อการตรวจสอบ (Audit Trail)
+ * 
+ * @property int $id
+ * @property int $user_id ผู้ใช้งานที่ทำรายการ
+ * @property string $user_role บทบาท
+ * @property string $action การกระทำ (Create/Update/Delete/Login/etc.)
+ * @property string $module โมดูลที่เกี่ยวข้อง
+ * @property string $severity ระดับความรุนแรง
+ * @property datetime $timestamp เวลาที่เกิดเหตุการณ์
+ * @property string|null $details รายละเอียด
+ * @property string|null $ip_address IP Address
+ * @property string|null $user_agent User Agent
+ */
 class ActivityLog extends Model
 {
     use HasFactory;
@@ -69,6 +85,9 @@ class ActivityLog extends Model
     const EVENT_ERROR = 'ERROR';             // ข้อผิดพลาด
     const EVENT_SYSTEM = 'SYSTEM';           // ระบบ
 
+    /**
+     * ผู้ใช้งานที่ทำรายการ
+     */
     public function user()
     {
         return $this->belongsTo(User::class);

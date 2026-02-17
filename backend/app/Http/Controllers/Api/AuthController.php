@@ -14,10 +14,34 @@ use Illuminate\Validation\Rules\Password;
 
 use App\Models\UserMenuPermission;
 
+/**
+ * AuthController - ระบบยืนยันตัวตน (Authentication)
+ * 
+ * จัดการ:
+ * - register: ลงทะเบียนผู้ใช้ใหม่ + ออก token
+ * - login: เข้าสู่ระบบ (รองรับ email หรือ username) + ออก token + แนบ permissions
+ * - logout: ออกจากระบบ (ลบ token)
+ * - me: ดึงข้อมูลผู้ใช้ปัจจุบัน + permissions
+ * - updatePassword: เปลี่ยนรหัสผ่าน (ต้องยืนยันรหัสเดิม)
+ * 
+ * ใช้ Laravel Sanctum สำหรับ Token-based Authentication
+ * 
+ * Routes:
+ * - POST /api/register (public)
+ * - POST /api/login (public)
+ * - POST /api/logout (auth)
+ * - GET  /api/me (auth)
+ * - PUT  /api/password (auth)
+ */
 class AuthController extends Controller
 {
     /**
      * Register - ลงทะเบียนผู้ใช้ใหม่
+     * 
+     * POST /api/register (public - ไม่ต้อง login)
+     * 
+     * @param Request $request {name, username, email, password, password_confirmation, role?, branch_id?, department_id?, organization?}
+     * @return JsonResponse 201 {message, user, token, token_type}
      */
     public function register(Request $request)
     {
@@ -55,6 +79,13 @@ class AuthController extends Controller
 
     /**
      * Login - เข้าสู่ระบบ
+     * 
+     * POST /api/login (public - ไม่ต้อง login)
+     * รองรับ identifier ทั้ง email และ username
+     * สร้าง Sanctum token + load branch/department + แนบ permissions
+     * 
+     * @param Request $request {identifier (email หรือ username), password}
+     * @return JsonResponse {message, user (+ permissions), token, token_type} หรือ 401
      */
     public function login(Request $request)
     {
@@ -96,6 +127,11 @@ class AuthController extends Controller
 
     /**
      * Logout - ออกจากระบบ
+     * 
+     * POST /api/logout (auth:sanctum)
+     * ลบ token ปัจจุบันของผู้ใช้
+     * 
+     * @return JsonResponse {message}
      */
     public function logout(Request $request)
     {
@@ -112,7 +148,12 @@ class AuthController extends Controller
     }
 
     /**
-     * Me - ข้อมูลผู้ใช้ปัจจุบัน
+     * Me - ดึงข้อมูลผู้ใช้ที่ login อยู่
+     * 
+     * GET /api/me (auth:sanctum)
+     * โหลด branch, department พร้อม permissions (role + user override)
+     * 
+     * @return JsonResponse {user (+ role_permissions)}
      */
     public function me(Request $request)
     {
@@ -126,6 +167,12 @@ class AuthController extends Controller
 
     /**
      * Update Password - เปลี่ยนรหัสผ่าน
+     * 
+     * PUT /api/password (auth:sanctum)
+     * ต้องยืนยันรหัสผ่านปัจจุบัน (current_password) ก่อนเปลี่ยน
+     * 
+     * @param Request $request {current_password, password, password_confirmation}
+     * @return JsonResponse {message} หรือ 400 (รหัสผ่านไม่ถูกต้อง)
      */
     public function updatePassword(Request $request)
     {
@@ -152,8 +199,17 @@ class AuthController extends Controller
     }
 
     /**
-     * Helper: Attach merged permissions (role + user override) to user
-     * User-specific permissions override role permissions
+     * Helper: รวม permissions จาก Role + User override แล้วแนบไปกับ user object
+     * 
+     * ลำดับความสำคัญ:
+     * 1. ดึง permissions จาก Role (base)
+     * 2. ดึง permissions เฉพาะ User (override)
+     * 3. ถ้า user มี override → ใช้ค่า override, ไม่มี → ใช้ค่าจาก role
+     * 
+     * ผลลัพธ์: $user->role_permissions = [{menu_id, menu_key, can_view, can_create, can_update, can_delete, has_user_override}]
+     * 
+     * @param User $user
+     * @return User พร้อม role_permissions
      */
     private function attachMergedPermissions(User $user)
     {

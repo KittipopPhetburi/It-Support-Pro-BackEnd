@@ -5,6 +5,18 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
+/**
+ * BaseCrudController - Controller ต้นแบบสำหรับ CRUD operations
+ * 
+ * ให้ Controller ย่อยสืบทอด (extends) แล้วกำหนด:
+ * - $modelClass: ชื่อ Model class (เช่น Branch::class)
+ * - $validationRules: กฎ validation สำหรับ store
+ * - $updateValidationRules: กฎ validation สำหรับ update (optional ถ้าไม่กำหนดจะใช้ $validationRules)
+ * 
+ * Controller ย่อยสามารถ override แต่ละ method ได้ตามต้องการ
+ * 
+ * Routes ที่ใช้: apiResource (index, store, show, update, destroy)
+ */
 abstract class BaseCrudController extends Controller
 {
     /**
@@ -24,6 +36,11 @@ abstract class BaseCrudController extends Controller
      */
     protected array $updateValidationRules = [];
 
+    /**
+     * ดึงข้อมูลทั้งหมด (GET /api/{resource})
+     * รองรับ pagination: ?per_page=20
+     * ถ้าไม่ส่ง per_page จะดึงทั้งหมด
+     */
     public function index(Request $request)
     {
         $query = call_user_func([$this->modelClass, 'query']);
@@ -36,6 +53,13 @@ abstract class BaseCrudController extends Controller
         return $query->get();
     }
 
+    /**
+     * สร้างข้อมูลใหม่ (POST /api/{resource})
+     * - validate ตาม $validationRules (ถ้ามี)
+     * - สร้าง model ด้วย $request->all() (fillable จะกรองเฉพาะ field ที่อนุญาต)
+     * 
+     * @return JsonResponse 201 Created
+     */
     public function store(Request $request)
     {
         // Get all input data first
@@ -52,6 +76,12 @@ abstract class BaseCrudController extends Controller
         return response()->json($model, 201);
     }
 
+    /**
+     * ดึงข้อมูลตาม ID (GET /api/{resource}/{id})
+     * 
+     * @param int $id
+     * @return JsonResponse ข้อมูล model หรือ 404
+     */
     public function show($id)
     {
         $model = call_user_func([$this->modelClass, 'findOrFail'], $id);
@@ -59,6 +89,14 @@ abstract class BaseCrudController extends Controller
         return response()->json($model);
     }
 
+    /**
+     * แก้ไขข้อมูล (PUT /api/{resource}/{id})
+     * - ใช้ $updateValidationRules ถ้ามี ไม่งั้นใช้ $validationRules
+     * - fill + save เพื่ออัปเดตเฉพาะ field ที่ส่งมา
+     * 
+     * @param int $id
+     * @return JsonResponse ข้อมูล model ที่อัปเดตแล้ว
+     */
     public function update(Request $request, $id)
     {
         $model = call_user_func([$this->modelClass, 'findOrFail'], $id);
@@ -75,6 +113,12 @@ abstract class BaseCrudController extends Controller
         return response()->json($model);
     }
 
+    /**
+     * ลบข้อมูล (DELETE /api/{resource}/{id})
+     * 
+     * @param int $id
+     * @return JsonResponse 204 No Content
+     */
     public function destroy($id)
     {
         $model = call_user_func([$this->modelClass, 'findOrFail'], $id);

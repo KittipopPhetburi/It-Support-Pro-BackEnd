@@ -6,6 +6,26 @@ use App\Traits\HasBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Asset Model - โมเดลสินทรัพย์
+ * 
+ * จัดการข้อมูลทรัพย์สิน อุปกรณ์ IT และ Software Licenses
+ * รองรับการจัดการ S/N แบบหลายตัว (Serialized Assets) และการทำ Mapping สถานะรายชิ้น
+ * 
+ * @property int $id
+ * @property string $name ชื่อสินทรัพย์
+ * @property string $type ประเภท (Hardware/Software/Consumable)
+ * @property string $category หมวดหมู่
+ * @property string|null $brand ยี่ห้อ
+ * @property string|null $model รุ่น
+ * @property string|null $serial_number Serial Numbers (CSV หรือหลายบรรทัด)
+ * @property string|null $inventory_number หมายเลขครุภัณฑ์
+ * @property int $quantity จำนวน
+ * @property string $status สถานะรวม (Available/In Use/On Loan/Maintenance/Retired)
+ * @property int|null $assigned_to_id ผู้ครอบครองปัจจุบัน
+ * @property string|null $location สถานที่ตั้ง
+ * @property array|null $serial_mapping การตั้งค่าสถานะราย Serial Number (JSON)
+ */
 class Asset extends Model
 {
     use HasFactory, HasBranch;
@@ -61,38 +81,56 @@ class Asset extends Model
         'serial_mapping' => 'array', // Cast JSON to array
     ];
 
+    /**
+     * ผู้ใช้งานที่ครอบครองสินทรัพย์นี้ (Main assignee)
+     */
     public function assignedToUser()
     {
         return $this->belongsTo(User::class, 'assigned_to_id');
     }
 
+    /**
+     * สาขาที่เป็นเจ้าของสินทรัพย์
+     */
     public function branch()
     {
         return $this->belongsTo(Branch::class);
     }
 
+    /**
+     * แผนกที่เป็นเจ้าของสินทรัพย์
+     */
     public function departmentRelation()
     {
         return $this->belongsTo(Department::class, 'department_id');
     }
 
+    /**
+     * ประวัติการแจ้งซ่อม/Incidents ของสินทรัพย์นี้
+     */
     public function incidents()
     {
         return $this->hasMany(Incident::class);
     }
 
+    /**
+     * ประวัติการซ่อมบำรุง (Maintenance History)
+     */
     public function maintenanceHistories()
     {
         return $this->hasMany(MaintenanceHistory::class)->orderBy('created_at', 'desc');
     }
 
+    /**
+     * ประวัติการยืม/คืน (Borrowing History)
+     */
     public function borrowingHistories()
     {
         return $this->hasMany(BorrowingHistory::class)->orderBy('action_date', 'desc');
     }
 
     /**
-     * Get asset requests for this asset
+     * คำขอเบิก/ยืมที่เกี่ยวข้องกับสินทรัพย์นี้
      */
     public function assetRequests()
     {

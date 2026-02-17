@@ -8,6 +8,25 @@ use App\Models\AssetRequest;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\OtherRequestNotification;
 
+/**
+ * OtherRequestController - จัดการคำขออื่นๆ (Other Requests - จัดซื้อสาธารณูปโภค)
+ * 
+ * Extends BaseCrudController + override index/store + เพิ่ม approve/reject/complete/receive
+ * 
+ * Flow: Pending → Approved → Completed (จัดหาแล้ว) → Received (รับของแล้ว)
+ *                ↘ Rejected
+ * 
+ * receive: จัดสรร serial numbers ให้ asset + อัปเดต quantity + serial_mapping
+ * Notifications: OtherRequestNotification (Telegram + Database)
+ * 
+ * Routes:
+ * - GET    /api/other-requests                    - รายการทั้งหมด
+ * - POST   /api/other-requests                    - สร้างคำขอ + ส่ง Notification
+ * - POST   /api/other-requests/{id}/approve       - อนุมัติ
+ * - POST   /api/other-requests/{id}/reject        - ปฏิเสธ
+ * - POST   /api/other-requests/{id}/complete      - จัดหาเรียบร้อย
+ * - POST   /api/other-requests/{id}/receive       - รับของ + จัดสรร serial
+ */
 class OtherRequestController extends BaseCrudController
 {
     protected string $modelClass = OtherRequest::class;

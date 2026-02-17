@@ -5,6 +5,36 @@ namespace App\Http\Controllers\Api;
 use App\Models\AssetRequest;
 use App\Events\AssetRequestUpdated;
 
+/**
+ * AssetRequestController - จัดการคำขอเบิก/ยืม/ทดแทนสินทรัพย์
+ * 
+ * Extends BaseCrudController + override index/show/store/update + เพิ่ม approve/reject
+ * 
+ * กระบวนการหลัก:
+ * - store: สร้างคำขอ + ส่ง AssetRequestNotification
+ * - approve: อนุมัติ → จัดสรร serial (FIFO) + เปลี่ยน asset status + สร้าง BorrowingHistory + ส่ง Notification
+ * - reject: ปฏิเสธ + บันทึกเหตุผล + ส่ง Notification
+ * - update (return): คืนสินทรัพย์ → อัปเดต serial_mapping ตามสภาพ (Normal/Damaged/Lost) + คืน asset status
+ * 
+ * การจัดการ Serial เมื่อคืน:
+ * - Normal → ลบ serial จาก mapping (กลับเป็น Available)
+ * - Damaged → เปลี่ยน serial เป็น Maintenance
+ * - Lost → เปลี่ยน serial เป็น Lost + ลดจำนวน
+ * 
+ * Broadcasting: AssetRequestUpdated
+ * Notifications: AssetRequestNotification (Telegram + Database)
+ * 
+ * Routes:
+ * - GET    /api/asset-requests                    - รายการทั้งหมด
+ * - GET    /api/asset-requests/{id}               - รายละเอียด
+ * - POST   /api/asset-requests                    - สร้างคำขอ
+ * - PUT    /api/asset-requests/{id}               - อัปเดต/คืนสินทรัพย์
+ * - DELETE /api/asset-requests/{id}               - ลบ
+ * - GET    /api/asset-requests/statistics          - สถิติ
+ * - GET    /api/asset-requests/my                  - คำขอของฉัน
+ * - POST   /api/asset-requests/{id}/approve        - อนุมัติ
+ * - POST   /api/asset-requests/{id}/reject         - ปฏิเสธ
+ */
 class AssetRequestController extends BaseCrudController
 {
     protected string $modelClass = AssetRequest::class;
@@ -38,6 +68,13 @@ class AssetRequestController extends BaseCrudController
         'return_notes' => 'nullable|string',
     ];
 
+    /**
+     * ดึงรายการคำขอทั้งหมด
+     * 
+     * GET /api/asset-requests
+     * โหลด requester, asset, branch, department
+     * เรียงตาม created_at ล่าสุด + รองรับ pagination
+     */
     public function index(\Illuminate\Http\Request $request)
     {
         $query = AssetRequest::with('requester', 'asset', 'branch', 'departmentRelation')

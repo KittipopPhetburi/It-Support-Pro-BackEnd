@@ -6,6 +6,18 @@ use App\Models\Branch;
 use App\Events\BranchUpdated;
 use Illuminate\Http\Request;
 
+/**
+ * BranchController - จัดการสาขา (Branch Management)
+ * 
+ * Extends BaseCrudController + override store/update/destroy
+ * ทุก method broadcast BranchUpdated event
+ * 
+ * Routes:
+ * - GET    /api/branches           - รายการสาขาทั้งหมด
+ * - POST   /api/branches           - สร้างสาขาใหม่
+ * - PUT    /api/branches/{id}      - แก้ไขสาขา
+ * - DELETE /api/branches/{id}      - ลบสาขา
+ */
 class BranchController extends BaseCrudController
 {
     protected string $modelClass = Branch::class;

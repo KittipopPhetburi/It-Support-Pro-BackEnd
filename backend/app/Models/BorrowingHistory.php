@@ -5,6 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * BorrowingHistory Model - โมเดลประวัติการยืม/คืน
+ * 
+ * บันทึกประวัติการยืม (Borrow), เบิก (Requisition), และคืน (Return) ทั้งหมด
+ * 
+ * @property int $id
+ * @property int $asset_id สินทรัพย์
+ * @property int $user_id ผู้ยืม/เบิก
+ * @property string $action_type ประเภท (borrow/requisition/return)
+ * @property datetime $action_date วันที่ทำรายการ
+ * @property string $status สถานะรายการ (active, returned, overdue)
+ */
 class BorrowingHistory extends Model
 {
     use HasFactory;
@@ -31,21 +43,33 @@ class BorrowingHistory extends Model
         'actual_return_date' => 'datetime',
     ];
 
+    /**
+     * สินทรัพย์
+     */
     public function asset()
     {
         return $this->belongsTo(Asset::class);
     }
 
+    /**
+     * ผู้ยืม/คืน
+     */
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * เจ้าหน้าที่ผู้ดำเนินการ
+     */
     public function processor()
     {
         return $this->belongsTo(User::class, 'processed_by');
     }
 
+    /**
+     * คำขอที่เกี่ยวข้อง
+     */
     public function request()
     {
         return $this->belongsTo(AssetRequest::class, 'request_id');

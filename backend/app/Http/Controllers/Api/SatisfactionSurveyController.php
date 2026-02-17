@@ -7,6 +7,24 @@ use App\Models\Incident;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * SatisfactionSurveyController - แบบประเมินความพึงพอใจ (Satisfaction Survey)
+ * 
+ * Extends BaseCrudController + override index/store + เพิ่ม pending/getByTicketId/checkTicket/statistics
+ * 
+ * กระบวนการ store:
+ * - สร้าง survey → auto-close incident (Resolved → Closed)
+ * - คืน asset status + สร้าง MaintenanceHistory
+ * - broadcast IncidentUpdated + AssetUpdated
+ * 
+ * Routes:
+ * - GET    /api/satisfaction-surveys                    - รายการทั้งหมด
+ * - POST   /api/satisfaction-surveys                    - สร้าง + auto-close incident
+ * - GET    /api/satisfaction-surveys/pending             - รอประเมิน (ของ user ปัจจุบัน)
+ * - GET    /api/satisfaction-surveys/ticket/{ticketId}   - ดูตาม ticket ID
+ * - GET    /api/satisfaction-surveys/check/{ticketId}    - เช็คว่าประเมินแล้วหรือยัง
+ * - GET    /api/satisfaction-surveys/statistics           - สถิติ (avg rating, distribution)
+ */
 class SatisfactionSurveyController extends BaseCrudController
 {
     protected string $modelClass = SatisfactionSurvey::class;
