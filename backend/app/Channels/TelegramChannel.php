@@ -31,16 +31,17 @@ class TelegramChannel
 
         if (property_exists($notification, 'incident')) {
             $branch = $notification->incident->branch;
-            $orgName = $notification->incident->organization;
+            $orgName = $notification->incident->organization ?? ($branch ? $branch->name : null);
             $reqType = 'incident';
             $configKey = 'incident';
         } elseif (property_exists($notification, 'assetRequest')) {
             $branch = $notification->assetRequest->branch;
+            $orgName = $notification->assetRequest->organization ?? ($branch ? $branch->name : null);
             $reqType = strtolower($notification->assetRequest->request_type ?? 'asset_request');
             $configKey = $reqType;
         } elseif (property_exists($notification, 'otherRequest')) {
             $branch = $notification->otherRequest->branch;
-            $orgName = $notification->otherRequest->organization;
+            $orgName = $notification->otherRequest->organization ?? ($branch ? $branch->name : null);
             $reqType = strtolower($notification->otherRequest->request_type ?? 'requisition');
             $configKey = 'other_request'; 
         }

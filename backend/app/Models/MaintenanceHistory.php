@@ -11,6 +11,7 @@ class MaintenanceHistory extends Model
 
     protected $fillable = [
         'asset_id',
+        'serial_number',
         'incident_id',
         'title',
         'description',

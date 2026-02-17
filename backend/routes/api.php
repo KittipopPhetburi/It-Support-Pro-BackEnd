@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\{
     UserController,
     AssetController,
     IncidentController,
+    IncidentReferenceController,
     IncidentTitleController,
     ProblemController,
     AssetRequestController,
@@ -42,6 +43,12 @@ use App\Http\Controllers\Api\{
 */
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Public Asset Lookup - สำหรับสแกน QR Code ดูข้อมูลอุปกรณ์โดยไม่ต้อง Login
+Route::get('/public/assets/{identifier}', [AssetController::class, 'publicShow']);
+
+// Public Incident Creation - สำหรับแจ้งซ่อมจากหน้า QR Scan โดยไม่ต้อง Login
+Route::post('/public/incidents', [App\Http\Controllers\Api\PublicIncidentController::class, 'store']);
 
 /*
 |--------------------------------------------------------------------------
@@ -81,6 +88,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/incidents/assigned', [IncidentController::class, 'assignedIncidents']);
     Route::post('/incidents/{incident}/assign', [IncidentController::class, 'assign']);
     Route::apiResource('incidents', IncidentController::class);
+
+    // Incident References (Categories, Priorities, Statuses)
+    Route::get('/incident-categories', [IncidentReferenceController::class, 'getCategories']);
+    Route::get('/incident-priorities', [IncidentReferenceController::class, 'getPriorities']);
+    Route::get('/incident-statuses', [IncidentReferenceController::class, 'getStatuses']);
 
     // Incident Titles (for BusinessHours management)
     Route::get('/incident-titles/all', [IncidentTitleController::class, 'all']);
@@ -235,7 +247,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('pm-projects', PmProjectController::class);
 
     // PM Projects
-    Route::apiResource('pm-projects', PmProjectController::class);
+
 
     // Dashboard
     Route::prefix('dashboard')->group(function () {

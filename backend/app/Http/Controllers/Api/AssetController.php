@@ -79,6 +79,63 @@ class AssetController extends BaseCrudController
     }
 
     /**
+     * Public show - สำหรับแสดงข้อมูล asset สาธารณะ (ไม่ต้อง login)
+     * ใช้สำหรับ QR Code scanning
+     * ค้นหาได้ด้วย ID, QR Code, หรือ Serial Number
+     */
+    public function publicShow($identifier)
+    {
+        // ค้นหาด้วย ID ก่อน
+        $asset = Asset::with(['branch', 'maintenanceHistories.technician'])
+            ->where('id', $identifier)
+            ->orWhere('qr_code', $identifier)
+            ->orWhere('serial_number', $identifier)
+            ->first();
+
+        if (!$asset) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่พบอุปกรณ์ในระบบ',
+            ], 404);
+        }
+
+        // Return limited public information
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $asset->id,
+                'name' => $asset->name,
+                'type' => $asset->type,
+                'category' => $asset->category ?? 'Hardware',
+                'brand' => $asset->brand,
+                'model' => $asset->model,
+                'serial_number' => $asset->serial_number,
+                'status' => $asset->status,
+                'organization' => $asset->organization ?? $asset->branch?->name,
+                'department' => $asset->department,
+                'assigned_to' => $asset->assigned_to,
+                'qr_code' => $asset->qr_code,
+                'purchase_date' => $asset->purchase_date,
+                'warranty_expiry' => $asset->warranty_expiry,
+                'ip_address' => $asset->ip_address,
+                'mac_address' => $asset->mac_address,
+                'license_key' => $asset->category === 'Software' ? $asset->license_key : null,
+                'license_type' => $asset->license_type,
+                'expiry_date' => $asset->expiry_date,
+                'maintenance_history' => $asset->maintenanceHistories->take(5)->map(function ($history) {
+                    return [
+                        'id' => $history->id,
+                        'date' => $history->maintenance_date ?? $history->created_at,
+                        'description' => $history->description,
+                        'technician' => $history->technician?->name,
+                        'cost' => $history->cost,
+                    ];
+                }),
+            ],
+        ]);
+    }
+
+    /**
      * Get maintenance history for a specific asset
      */
     public function maintenanceHistory($id)
@@ -122,21 +179,61 @@ class AssetController extends BaseCrudController
         $rules = $this->updateValidationRules ?: $this->validationRules;
         $data = $rules ? $request->validate($rules) : $request->all();
 
-        // Check if status is changing
-        if (isset($data['status']) && $data['status'] !== $asset->status) {
+        // CASE A: Updating Specific Serial Statuses (via serial_mapping)
+        if (isset($data['serial_mapping'])) {
+            $mapping = $data['serial_mapping'];
+            
+            // 1. Update the mapping in JSON
+            $currentMapping = $asset->serial_mapping ?? [];
+            foreach ($mapping as $serial => $info) {
+                // Ensure we keep existing data if partial update
+                $currentMapping[$serial] = array_merge($currentMapping[$serial] ?? [], $info);
+            }
+            $data['serial_mapping'] = $currentMapping;
+
+            // 2. Recalculate Master Status based on all serials
+            $allSerials = $asset->getSerialNumbersArray();
+            $allStatuses = [];
+            
+            foreach ($allSerials as $serial) {
+                // Check if this serial has a specific status in the mapping
+                if (isset($currentMapping[$serial]) && isset($currentMapping[$serial]['status'])) {
+                    $allStatuses[] = $currentMapping[$serial]['status'];
+                } else {
+                    // Default to 'Available' if no mapping
+                    $allStatuses[] = 'Available';
+                }
+            }
+            
+            // Logic: 
+            // - If ANY are 'Available' -> Master is 'Available' (so users can borrow)
+            // - If ALL are 'Maintenance' -> Master is 'Maintenance'
+            // - If ALL are 'In Use' -> Master is 'In Use' OR 'On Loan'
+            // - If Mixed (e.g. In Use + Maintenance) -> 'In Use' (Busy)
+            
+            if (in_array('Available', $allStatuses)) {
+                $data['status'] = 'Available';
+            } elseif (in_array('In Use', $allStatuses) && !in_array('Available', $allStatuses)) {
+                $data['status'] = 'In Use'; 
+            } elseif (count(array_unique($allStatuses)) === 1) {
+                 // All same (e.g. all Maintenance, all Retired)
+                $data['status'] = $allStatuses[0];
+            } else {
+                // Fallback for other mixed states (e.g. Retired + Maintenance) -> Maintenance as safest
+                $data['status'] = 'Maintenance'; 
+            }
+        }
+        
+        // CASE B: Updating Master Status directly (Bulk apply to all serials)
+        elseif (isset($data['status']) && $data['status'] !== $asset->status) {
             $newStatus = $data['status'];
             
             // Sync status to all serial numbers if they exist
             if (!empty($asset->serial_mapping)) {
                 $mapping = $asset->serial_mapping;
                 foreach ($mapping as $serial => $info) {
-                    // Update status for each serial
-                    // If status is 'Available', we should clear any 'assigned_to' info potentially? 
-                    // For now, just syncing the status status.
                     $mapping[$serial]['status'] = $newStatus;
-                    
-                    // Add a note about the mass update
-                    $mapping[$serial]['note'] = ($mapping[$serial]['note'] ?? '') . " [System: Bulk status update to $newStatus]";
+                    $mapping[$serial]['note'] = ($mapping[$serial]['note'] ?? '') . " [Bulk update: $newStatus]";
                 }
                 $data['serial_mapping'] = $mapping;
             }
