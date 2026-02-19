@@ -224,6 +224,21 @@ class IncidentController extends BaseCrudController
                 // Broadcast asset updated event
                 broadcast(new AssetUpdated($asset->fresh(), 'updated'))->toOthers();
             }
+
+            // Create initial MaintenanceHistory record so repair history appears immediately
+            $model->load('assignee');
+            \App\Models\MaintenanceHistory::create([
+                'asset_id'            => $model->asset_id,
+                'incident_id'         => $model->id,
+                'title'               => $model->title,
+                'description'         => $model->description ?: 'แจ้งซ่อมตาม incident',
+                'repair_status'       => 'In Progress',
+                'technician_id'       => $model->assignee_id,
+                'technician_name'     => $model->assignee ? $model->assignee->name : null,
+                'start_date'          => $model->start_repair_date ?? now(),
+                'has_cost'            => false,
+                'cost'                => 0,
+            ]);
         }
         
         // Load the assignee relationship to return the technician name
@@ -345,22 +360,33 @@ class IncidentController extends BaseCrudController
                 \Log::info('No asset_id linked to this incident');
             }
 
-            // Create MaintenanceHistory record when incident is closed with an asset
+            // Update or create MaintenanceHistory record when incident is closed with an asset
             if ($model->asset_id) {
-                \App\Models\MaintenanceHistory::create([
-                    'asset_id' => $model->asset_id,
-                    'incident_id' => $model->id,
-                    'title' => $model->title,
-                    'description' => $data['repair_details'] ?? $model->repair_details ?: $model->description ?: 'ซ่อมแซมตาม incident',
-                    'repair_status' => $data['repair_status'] ?? $model->repair_status ?? 'Completed',
-                    'technician_id' => $model->assignee_id,
-                    'technician_name' => $model->assignee ? $model->assignee->name : null,
-                    'start_date' => $model->start_repair_date ?? $model->created_at,
-                    'completion_date' => $data['completion_date'] ?? $model->completion_date ?? now(),
-                    'has_cost' => $data['has_additional_cost'] ?? $model->has_additional_cost ?? false,
-                    'cost' => $data['additional_cost'] ?? $model->additional_cost,
+                $historyData = [
+                    'asset_id'            => $model->asset_id,
+                    'incident_id'         => $model->id,
+                    'title'               => $model->title,
+                    'description'         => $data['repair_details'] ?? $model->repair_details ?: $model->description ?: 'ซ่อมแซมตาม incident',
+                    'repair_status'       => $data['repair_status'] ?? $model->repair_status ?? 'Completed',
+                    'technician_id'       => $model->assignee_id,
+                    'technician_name'     => $model->assignee ? $model->assignee->name : null,
+                    'start_date'          => $model->start_repair_date ?? $model->created_at,
+                    'completion_date'     => $data['completion_date'] ?? $model->completion_date ?? now(),
+                    'has_cost'            => $data['has_additional_cost'] ?? $model->has_additional_cost ?? false,
+                    'cost'                => $data['additional_cost'] ?? $model->additional_cost,
                     'replacement_equipment' => $data['replacement_equipment'] ?? $model->replacement_equipment,
-                ]);
+                ];
+
+                // Update existing record (created on store) or create new one
+                $existingHistory = \App\Models\MaintenanceHistory::where('incident_id', $model->id)
+                    ->where('asset_id', $model->asset_id)
+                    ->first();
+
+                if ($existingHistory) {
+                    $existingHistory->update($historyData);
+                } else {
+                    \App\Models\MaintenanceHistory::create($historyData);
+                }
             }
         }
 
