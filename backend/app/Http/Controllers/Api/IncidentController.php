@@ -49,7 +49,7 @@ class IncidentController extends BaseCrudController
         'category' => 'nullable|string|max:255',
         'subcategory' => 'nullable|string|max:255',
 
-        'requester_id' => 'required|integer|exists:users,id',
+        'requester_id' => 'required', // Relaxed validation (removed integer|exists to support diverse inputs)
         'reported_by_id' => 'nullable|integer|exists:users,id',
         'assignee_id' => 'nullable|integer|exists:users,id',
 
@@ -141,6 +141,101 @@ class IncidentController extends BaseCrudController
     ];
 
     /**
+     * Public incident creation - สำหรับแจ้งซ่อมจากหน้า QR Scan โดยไม่ต้อง login
+     */
+    public function publicStore(Request $request)
+    {
+        $data = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'reporter_name' => 'required|string|max:255',
+            'reporter_email' => 'nullable|email|max:255',
+            'reporter_phone' => 'nullable|string|max:50',
+            'asset_id' => 'nullable|string',
+            'serial_number' => 'nullable|string|max:255',
+            // requester_id ไม่ต้อง validate ตรงนี้ (เอาออกจาก validate rule)
+        ]);
+
+        // ค้นหา asset ถ้ามี asset_id
+        $asset = null;
+        if (!empty($data['asset_id'])) {
+            $asset = \App\Models\Asset::where('id', (int)$data['asset_id'])
+                ->orWhere('qr_code', $data['asset_id'])
+                ->orWhere('serial_number', $data['asset_id'])
+                ->first();
+        }
+
+        // หา requester_id (ใช้ admin คนแรกหรือ user คนแรก) เนื่องจาก public report ไม่มี user login
+        // หรือถ้าส่ง requester_id มา (แบบ unvalidated) ก็ลองเช็คดู
+        $requesterId = null;
+        if ($request->has('requester_id')) {
+            $inputVerify = $request->input('requester_id');
+            // Check manual validation
+            if (is_numeric($inputVerify) && \App\Models\User::find($inputVerify)) {
+                $requesterId = $inputVerify;
+            }
+        }
+
+        if (!$requesterId) {
+            $defaultRequester = \App\Models\User::where('role', 'Admin')->first() 
+                ?? \App\Models\User::first();
+            $requesterId = $defaultRequester?->id;
+        }
+
+        // สร้าง Incident record
+        $incident = Incident::create([
+            'title' => $data['title'],
+            'description' => $data['description'] . "\n\n---\nผู้แจ้ง: " . $data['reporter_name'] . 
+                            "\nอีเมล: " . ($data['reporter_email'] ?? '-') . 
+                            "\nเบอร์โทร: " . ($data['reporter_phone'] ?? '-') .
+                            ($data['serial_number'] ? "\nSerial Number: " . $data['serial_number'] : ''),
+            'priority' => 'Medium',
+            'status' => 'Open',
+            'category' => 'Hardware',
+            'subcategory' => 'แจ้งซ่อม (QR Scan)',
+            'requester_id' => $requesterId,
+            'asset_id' => $asset?->id,
+            'asset_name' => $asset?->name,
+            'asset_brand' => $asset?->brand,
+            'asset_model' => $asset?->model,
+            'asset_serial_number' => $data['serial_number'] ?? $asset?->serial_number,
+            'organization' => $asset?->organization ?? 'ไม่ระบุ',
+            'contact_phone' => $data['reporter_phone'],
+            'is_custom_asset' => false,
+        ]);
+
+        // Update Asset status to Maintenance
+        if ($asset) {
+            $incident->previous_asset_status = $asset->status;
+            $incident->save();
+            
+            $asset->update(['status' => 'Maintenance']);
+            broadcast(new AssetUpdated($asset->fresh(), 'updated'))->toOthers();
+        }
+
+        // Broadcast new incident created event
+        broadcast(new IncidentUpdated($incident, 'created'))->toOthers();
+
+        // Send Notification
+        try {
+            Notification::route(TelegramChannel::class, 'system')
+                ->notify(new IncidentNotification($incident, 'created'));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send public incident notification: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'ส่งคำขอแจ้งซ่อมสำเร็จ',
+            'data' => [
+                'id' => $incident->id,
+                'title' => $incident->title,
+                'status' => $incident->status,
+            ],
+        ], 201);
+    }
+
+    /**
      * แปลงชื่อ field จาก frontend เป็นชื่อ backend
      * 
      * ตัวอย่าง: assigned_to → assignee_id
@@ -173,17 +268,27 @@ class IncidentController extends BaseCrudController
         unset($data['requester']);
         unset($data['reported_by']);
         unset($data['branch']);
-        unset($data['department']);
-        
-        // ใส่ค่า category, priority, status กลับเข้าไปเพื่อให้บันทึกลงฐานข้อมูล
+        // Ensure branch_id and department (name) is set
+        if ($request->user()) {
+            if (!isset($data['branch_id'])) {
+                $data['branch_id'] = $request->user()->branch_id;
+            }
+            if (!isset($data['department']) || empty($data['department'])) {
+                // If it's a numeric ID (department_id), we might want the name too
+                if (isset($data['department_id']) && is_numeric($data['department_id'])) {
+                    $dept = \App\Models\Department::find($data['department_id']);
+                    if ($dept) $data['department'] = $dept->name;
+                } elseif ($request->user()->department) {
+                    // Fallback to user's department name
+                    $data['department'] = $request->user()->department->name;
+                }
+            }
+        }
+
+        // Put category, priority, status back into the array (values from frontend)
         if ($displayCategory) $data['category'] = $displayCategory;
         if ($displayPriority) $data['priority'] = $displayPriority;
         if ($displayStatus) $data['status'] = $displayStatus;
-        
-        // Ensure branch_id is set
-        if (!isset($data['branch_id']) && $request->user()) {
-            $data['branch_id'] = $request->user()->branch_id;
-        }
 
         return $data;
     }
@@ -205,21 +310,62 @@ class IncidentController extends BaseCrudController
     {
         // Map frontend field names to backend
         $mappedData = $this->mapRequestData($request);
+        
+        if (isset($mappedData['requester_id']) && 
+           ($mappedData['requester_id'] === 'undefined' || $mappedData['requester_id'] === 'null' || !is_numeric($mappedData['requester_id']))) {
+            $mappedData['requester_id'] = auth()->id();
+        }
+
+        // Feature: Sync Organization with Asset (like Public Report) to ensure Notifications work
+        if (!empty($mappedData['asset_id'])) {
+            $asset = \App\Models\Asset::find($mappedData['asset_id']);
+            if ($asset && !empty($asset->organization)) {
+                $mappedData['organization'] = $asset->organization;
+            }
+        }
+
         $request->merge($mappedData);
         
         $data = $request->validate($this->validationRules);
         
+        // Ensure organization is set from merged data if validation passed it through
+        if (isset($mappedData['organization'])) {
+             $data['organization'] = $mappedData['organization'];
+        }
+
         $model = Incident::create($data);
 
         // Update Asset status to Maintenance when incident is created with an asset
+        // Update Asset Status
         if ($model->asset_id) {
             $asset = \App\Models\Asset::find($model->asset_id);
             if ($asset) {
-                // Save previous status before changing to Maintenance
-                $model->previous_asset_status = $asset->status;
-                $model->save();
+                $targetSerial = $model->asset_serial_number;
                 
-                $asset->update(['status' => 'Maintenance']);
+                // 1. Update Specific Serial Status (via serial_mapping)
+                if ($targetSerial) {
+                    $mapping = $asset->serial_mapping ?? [];
+                    $mapping[$targetSerial] = [
+                        'status' => 'Maintenance',
+                        'note' => "Incident #{$model->id}: {$model->title}",
+                        'updated_at' => now()->toDateTimeString()
+                    ];
+                    $asset->serial_mapping = $mapping;
+                    $asset->save();
+                }
+
+                // 2. Update Master Status
+                // Only update master status to Maintenance if it's a single-unit asset
+                // OR if we want to reflect that "something" is wrong.
+                // Safest approach: Only set Maintenance if it's a single serial asset.
+                $allSerials = $asset->getSerialNumbersArray();
+                if (count($allSerials) <= 1) {
+                    if ($asset->status !== 'Maintenance') {
+                        $model->previous_asset_status = $asset->status;
+                        $model->save();
+                        $asset->update(['status' => 'Maintenance']);
+                    }
+                }
                 
                 // Broadcast asset updated event
                 broadcast(new AssetUpdated($asset->fresh(), 'updated'))->toOthers();
@@ -282,7 +428,8 @@ class IncidentController extends BaseCrudController
 
         // Send Notification using Laravel's Notification system
         try {
-            Notification::route(TelegramChannel::class, 'system')
+            \Illuminate\Support\Facades\Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->route(\App\Channels\OrganizationMailChannel::class, 'system')
                 ->notify(new IncidentNotification($model, 'created'));
         } catch (\Exception $e) {
             \Log::error('Failed to send notification: ' . $e->getMessage());
@@ -338,15 +485,34 @@ class IncidentController extends BaseCrudController
                 if ($asset) {
                     \Log::info('Asset found: ' . $asset->name . ', Current status: ' . $asset->status);
                     
-                    // Restore previous status if saved, otherwise default to Available
-                    $previousStatus = $model->previous_asset_status;
-                    if ($previousStatus && $previousStatus !== 'Maintenance') {
-                        \Log::info('Restoring to previous status: ' . $previousStatus);
-                        $asset->update(['status' => $previousStatus]);
+                    $targetSerial = $model->asset_serial_number;
+
+                    // 1. Restore Specific Serial Status (remove from mapping)
+                    if ($targetSerial) {
+                        $mapping = $asset->serial_mapping ?? [];
+                        // Check if it was marked Maintenance by this incident (optional check but good for safety)
+                        if (isset($mapping[$targetSerial]) && $mapping[$targetSerial]['status'] === 'Maintenance') {
+                             unset($mapping[$targetSerial]);
+                             $asset->serial_mapping = $mapping;
+                             $asset->save();
+                        }
+                    }
+
+                    // 2. Restore Master Status (Only for single-unit assets)
+                    $allSerials = $asset->getSerialNumbersArray();
+                    if (count($allSerials) <= 1) {
+                         // Restore previous status if saved, otherwise default to Available
+                        $previousStatus = $model->previous_asset_status;
+                        if ($previousStatus && $previousStatus !== 'Maintenance') {
+                            \Log::info('Restoring to previous status: ' . $previousStatus);
+                            $asset->update(['status' => $previousStatus]);
+                        } else {
+                            // Default to Available if no previous status was saved
+                            \Log::info('No previous status, defaulting to Available');
+                            $asset->update(['status' => 'Available']);
+                        }
                     } else {
-                        // Default to Available if no previous status was saved
-                        \Log::info('No previous status, defaulting to Available');
-                        $asset->update(['status' => 'Available']);
+                         \Log::info('Multi-serial asset, skipping master status restore');
                     }
                     
                     \Log::info('Asset status after update: ' . $asset->fresh()->status);
@@ -362,18 +528,19 @@ class IncidentController extends BaseCrudController
 
             // Update or create MaintenanceHistory record when incident is closed with an asset
             if ($model->asset_id) {
-                $historyData = [
-                    'asset_id'            => $model->asset_id,
-                    'incident_id'         => $model->id,
-                    'title'               => $model->title,
-                    'description'         => $data['repair_details'] ?? $model->repair_details ?: $model->description ?: 'ซ่อมแซมตาม incident',
-                    'repair_status'       => $data['repair_status'] ?? $model->repair_status ?? 'Completed',
-                    'technician_id'       => $model->assignee_id,
-                    'technician_name'     => $model->assignee ? $model->assignee->name : null,
-                    'start_date'          => $model->start_repair_date ?? $model->created_at,
-                    'completion_date'     => $data['completion_date'] ?? $model->completion_date ?? now(),
-                    'has_cost'            => $data['has_additional_cost'] ?? $model->has_additional_cost ?? false,
-                    'cost'                => $data['additional_cost'] ?? $model->additional_cost,
+                \App\Models\MaintenanceHistory::create([
+                    'asset_id' => $model->asset_id,
+                    'serial_number' => $model->asset_serial_number, // Link specific serial
+                    'incident_id' => $model->id,
+                    'title' => $model->title,
+                    'description' => $data['repair_details'] ?? $model->repair_details ?: $model->description ?: 'ซ่อมแซมตาม incident',
+                    'repair_status' => $data['repair_status'] ?? $model->repair_status ?? 'Completed',
+                    'technician_id' => $model->assignee_id,
+                    'technician_name' => $model->assignee ? $model->assignee->name : null,
+                    'start_date' => $model->start_repair_date ?? $model->created_at,
+                    'completion_date' => $data['completion_date'] ?? $model->completion_date ?? now(),
+                    'has_cost' => $data['has_additional_cost'] ?? $model->has_additional_cost ?? false,
+                    'cost' => $data['additional_cost'] ?? $model->additional_cost,
                     'replacement_equipment' => $data['replacement_equipment'] ?? $model->replacement_equipment,
                 ];
 

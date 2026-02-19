@@ -116,6 +116,7 @@ class AssetRequestController extends BaseCrudController
         // Send Notification
         try {
             \Illuminate\Support\Facades\Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->route(\App\Channels\OrganizationMailChannel::class, 'system')
                 ->notify(new \App\Notifications\AssetRequestNotification($model, 'created'));
         } catch (\Exception $e) {
             \Log::error('Failed to send asset request notification: ' . $e->getMessage());
@@ -281,6 +282,7 @@ class AssetRequestController extends BaseCrudController
         if (isset($data['status']) && $data['status'] === 'Received') {
              try {
                 \Illuminate\Support\Facades\Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                    ->route(\App\Channels\OrganizationMailChannel::class, 'system')
                     ->notify(new \App\Notifications\AssetRequestNotification($model, 'received'));
             } catch (\Exception $e) {
                 \Log::error('Failed to send asset received notification: ' . $e->getMessage());
@@ -328,16 +330,18 @@ class AssetRequestController extends BaseCrudController
                 // Check if Asset has specific serial numbers/license keys to manage
                 $hasSerials = !empty($asset->serial_number);
 
-                if (!$hasSerials && $asset->category === 'Software') {
-                    // Logic for Software WITHOUT specific license keys (Count based)
-                    $availableLicenses = ($asset->total_licenses ?? 0) - ($asset->used_licenses ?? 0);
-                    if ($availableLicenses <= 0) {
+                if (!$hasSerials) {
+                    // Non-serialized asset (Software licenses, Consumable, non-serial Hardware)
+                    // Use count-based allocation
+                    $availableQty = $asset->available_quantity ?? (($asset->quantity ?? 0) - ($asset->used_licenses ?? 0));
+                    if ($availableQty <= 0) {
                         return response()->json([
-                            'error' => 'License สำหรับซอฟต์แวร์นี้หมดแล้ว (No available licenses)',
+                            'error' => 'ไม่มีจำนวนคงเหลือสำหรับสินทรัพย์นี้แล้ว (No available stock)',
                         ], 422);
                     }
-                    // Increment used licenses
-                    $asset->used_licenses = ($asset->used_licenses ?? 0) + 1;
+                    // Increment used count
+                    $asset->used_licenses = ($asset->used_licenses ?? 0) + ($assetRequest->quantity ?? 1);
+                    $asset->save();
                     
                 } else {
                     // Logic for Assets WITH serials/keys (Hardware OR Software with keys)
@@ -448,6 +452,7 @@ class AssetRequestController extends BaseCrudController
         // Send Notification
         try {
             \Illuminate\Support\Facades\Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->route(\App\Channels\OrganizationMailChannel::class, 'system')
                 ->notify(new \App\Notifications\AssetRequestNotification($assetRequest, 'rejected'));
         } catch (\Exception $e) {
             \Log::error('Failed to send asset rejected notification: ' . $e->getMessage());

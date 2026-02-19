@@ -1,0 +1,312 @@
+[
+    {
+        "id": 5,
+        "category": "Email",
+        "key": "mail_driver",
+        "value": "smtp",
+        "description": "\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17\u0e01\u0e32\u0e23\u0e2a\u0e48\u0e07\u0e2d\u0e35\u0e40\u0e21\u0e25 (smtp, log, sendmail)",
+        "type": "string",
+        "created_at": "2025-12-09T01:47:23.000000Z",
+        "updated_at": "2026-01-06T02:28:27.000000Z"
+    },
+    {
+        "id": 6,
+        "category": "Email",
+        "key": "smtp_host",
+        "value": "smtp.gmail.com",
+        "description": "SMTP Server Host",
+        "type": "string",
+        "created_at": "2025-12-09T01:47:23.000000Z",
+        "updated_at": "2026-01-06T02:28:27.000000Z"
+    },
+    {
+        "id": 7,
+        "category": "Email",
+        "key": "smtp_port",
+        "value": "587",
+        "description": "SMTP Port (587 for TLS, 465 for SSL)",
+        "type": "number",
+        "created_at": "2025-12-09T01:47:23.000000Z",
+        "updated_at": "2026-01-06T02:28:27.000000Z"
+    },
+    {
+        "id": 8,
+        "category": "Email",
+        "key": "smtp_username",
+        "value": "nayokjojo@gmail.com",
+        "description": "SMTP Username (\u0e2d\u0e35\u0e40\u0e21\u0e25\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e2a\u0e48\u0e07)",
+        "type": "string",
+        "created_at": "2025-12-09T01:47:23.000000Z",
+        "updated_at": "2026-02-18T02:19:56.000000Z"
+    },
+    {
+        "id": 9,
+        "category": "Email",
+        "key": "smtp_password",
+        "value": "",
+        "description": "SMTP Password \u0e2b\u0e23\u0e37\u0e2d App Password",
+        "type": "password",
+        "created_at": "2025-12-09T01:47:23.000000Z",
+        "updated_at": "2026-01-06T02:28:27.000000Z"
+    },
+    {
+        "id": 10,
+        "category": "Email",
+        "key": "smtp_encryption",
+        "value": "tls",
+        "description": "\u0e01\u0e32\u0e23\u0e40\u0e02\u0e49\u0e32\u0e23\u0e2b\u0e31\u0e2a (tls, ssl)",
+        "type": "string",
+        "created_at": "2025-12-09T01:47:23.000000Z",
+        "updated_at": "2026-01-06T02:28:27.000000Z"
+    },
+    {
+        "id": 11,
+        "category": "Email",
+        "key": "mail_from_address",
+        "value": "noreply@company.com",
+        "description": "Default Sender Email Address",
+        "type": "text",
+        "created_at": "2025-12-09T01:47:23.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 12,
+        "category": "Email",
+        "key": "mail_from_name",
+        "value": "IT Support Pro",
+        "description": "Default Sender Name",
+        "type": "text",
+        "created_at": "2025-12-09T01:47:23.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 13,
+        "category": "System",
+        "key": "auto_assign",
+        "value": "true",
+        "description": "\u0e2d\u0e19\u0e38\u0e0d\u0e32\u0e15\u0e43\u0e2b\u0e49\u0e21\u0e2d\u0e1a\u0e2b\u0e21\u0e32\u0e22 Incident \u0e2d\u0e31\u0e15\u0e42\u0e19\u0e21\u0e31\u0e15\u0e34",
+        "type": "string",
+        "created_at": "2025-12-09T01:47:23.000000Z",
+        "updated_at": "2025-12-09T01:47:23.000000Z"
+    },
+    {
+        "id": 14,
+        "category": "System",
+        "key": "max_file_size",
+        "value": "10",
+        "description": "\u0e02\u0e19\u0e32\u0e14\u0e44\u0e1f\u0e25\u0e4c\u0e2a\u0e39\u0e07\u0e2a\u0e38\u0e14\u0e17\u0e35\u0e48\u0e2d\u0e31\u0e1b\u0e42\u0e2b\u0e25\u0e14\u0e44\u0e14\u0e49 (MB)",
+        "type": "number",
+        "created_at": "2025-12-09T01:47:23.000000Z",
+        "updated_at": "2026-01-06T02:28:27.000000Z"
+    },
+    {
+        "id": 15,
+        "category": "System",
+        "key": "auto_close_days",
+        "value": "7",
+        "description": "Auto-close resolved incidents after (days)",
+        "type": "number",
+        "created_at": "2026-01-06T02:28:27.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 16,
+        "category": "System",
+        "key": "session_timeout",
+        "value": "60",
+        "description": "\u0e23\u0e30\u0e22\u0e30\u0e40\u0e27\u0e25\u0e32 Session (\u0e19\u0e32\u0e17\u0e35)",
+        "type": "number",
+        "created_at": "2026-01-06T02:28:27.000000Z",
+        "updated_at": "2026-01-06T02:28:27.000000Z"
+    },
+    {
+        "id": 17,
+        "category": "System",
+        "key": "default_priority",
+        "value": "Medium",
+        "description": "\u0e04\u0e27\u0e32\u0e21\u0e2a\u0e33\u0e04\u0e31\u0e0d\u0e40\u0e23\u0e34\u0e48\u0e21\u0e15\u0e49\u0e19\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a Incident \u0e43\u0e2b\u0e21\u0e48",
+        "type": "string",
+        "created_at": "2026-01-06T02:28:27.000000Z",
+        "updated_at": "2026-01-06T02:28:27.000000Z"
+    },
+    {
+        "id": 18,
+        "category": "System",
+        "key": "enable_notifications",
+        "value": "true",
+        "description": "\u0e40\u0e1b\u0e34\u0e14\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e01\u0e32\u0e23\u0e41\u0e08\u0e49\u0e07\u0e40\u0e15\u0e37\u0e2d\u0e19",
+        "type": "boolean",
+        "created_at": "2026-01-06T02:28:27.000000Z",
+        "updated_at": "2026-01-06T02:28:27.000000Z"
+    },
+    {
+        "id": 19,
+        "category": "System",
+        "key": "maintenance_mode",
+        "value": "false",
+        "description": "\u0e42\u0e2b\u0e21\u0e14\u0e1a\u0e33\u0e23\u0e38\u0e07\u0e23\u0e31\u0e01\u0e29\u0e32\u0e23\u0e30\u0e1a\u0e1a",
+        "type": "boolean",
+        "created_at": "2026-01-06T02:29:18.000000Z",
+        "updated_at": "2026-01-06T02:29:18.000000Z"
+    },
+    {
+        "id": 20,
+        "category": "Telegram",
+        "key": "telegram_bot_token",
+        "value": "8205207497:AAGA7XZxyRBuD6kl6tpCNWOH97ylSO0ZYrM",
+        "description": "Telegram Bot Token",
+        "type": "string",
+        "created_at": "2026-01-06T02:29:18.000000Z",
+        "updated_at": "2026-01-06T02:29:18.000000Z"
+    },
+    {
+        "id": 21,
+        "category": "Telegram",
+        "key": "telegram_chat_id",
+        "value": "-1003409917470",
+        "description": "Telegram Chat ID (Channel or Group)",
+        "type": "string",
+        "created_at": "2026-01-06T02:29:18.000000Z",
+        "updated_at": "2026-01-06T02:29:18.000000Z"
+    },
+    {
+        "id": 22,
+        "category": "Email",
+        "key": "mail_host",
+        "value": "smtp.gmail.com",
+        "description": "SMTP Host Address",
+        "type": "text",
+        "created_at": "2026-01-28T09:07:12.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 23,
+        "category": "Email",
+        "key": "mail_port",
+        "value": "587",
+        "description": "SMTP Port (587 or 465)",
+        "type": "number",
+        "created_at": "2026-01-28T09:07:12.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 24,
+        "category": "Email",
+        "key": "mail_username",
+        "value": "IT Support Pro",
+        "description": "SMTP Username",
+        "type": "text",
+        "created_at": "2026-01-28T09:07:12.000000Z",
+        "updated_at": "2026-02-18T02:21:14.000000Z"
+    },
+    {
+        "id": 25,
+        "category": "Email",
+        "key": "mail_password",
+        "value": "password",
+        "description": "SMTP Password \/ App Password",
+        "type": "password",
+        "created_at": "2026-01-28T09:07:12.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 26,
+        "category": "Email",
+        "key": "mail_encryption",
+        "value": "tls",
+        "description": "Encryption (tls\/ssl)",
+        "type": "text",
+        "created_at": "2026-01-28T09:07:12.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 27,
+        "category": "System",
+        "key": "max_upload_size",
+        "value": "10",
+        "description": "Max upload file size (MB)",
+        "type": "number",
+        "created_at": "2026-01-28T09:07:12.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 28,
+        "category": "SLA",
+        "key": "sla_critical_response",
+        "value": "1",
+        "description": "Critical Priority Response Time",
+        "type": "number",
+        "created_at": "2026-01-28T09:07:12.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 29,
+        "category": "SLA",
+        "key": "sla_critical_resolution",
+        "value": "4",
+        "description": "Critical Priority Resolution Time",
+        "type": "number",
+        "created_at": "2026-01-28T09:07:12.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 30,
+        "category": "SLA",
+        "key": "sla_high_response",
+        "value": "2",
+        "description": "High Priority Response Time",
+        "type": "number",
+        "created_at": "2026-01-28T09:07:12.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 31,
+        "category": "SLA",
+        "key": "sla_high_resolution",
+        "value": "8",
+        "description": "High Priority Resolution Time",
+        "type": "number",
+        "created_at": "2026-01-28T09:07:12.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 32,
+        "category": "SLA",
+        "key": "sla_medium_response",
+        "value": "4",
+        "description": "Medium Priority Response Time",
+        "type": "number",
+        "created_at": "2026-01-28T09:07:12.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 33,
+        "category": "SLA",
+        "key": "sla_medium_resolution",
+        "value": "24",
+        "description": "Medium Priority Resolution Time",
+        "type": "number",
+        "created_at": "2026-01-28T09:07:12.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 34,
+        "category": "SLA",
+        "key": "sla_low_response",
+        "value": "8",
+        "description": "Low Priority Response Time",
+        "type": "number",
+        "created_at": "2026-01-28T09:07:12.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    },
+    {
+        "id": 35,
+        "category": "SLA",
+        "key": "sla_low_resolution",
+        "value": "48",
+        "description": "Low Priority Resolution Time",
+        "type": "number",
+        "created_at": "2026-01-28T09:07:12.000000Z",
+        "updated_at": "2026-01-28T09:07:12.000000Z"
+    }
+]

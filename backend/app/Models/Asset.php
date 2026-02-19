@@ -145,10 +145,10 @@ class Asset extends Model
         if (empty($this->serial_number)) {
             return [];
         }
-        // Split by comma, newline (actual), carriage return, or literal "\n" sequence
+        // Split by comma, newline (actual), carriage return, space, or literal "\n" sequence
         // We replace literal "\n" with actual newline first, then split
         $normalized = str_replace(['\n', '\r'], "\n", $this->serial_number);
-        return preg_split('/[,\n\r]+/', $normalized, -1, PREG_SPLIT_NO_EMPTY);
+        return preg_split('/[,\n\r\s]+/', $normalized, -1, PREG_SPLIT_NO_EMPTY);
     }
 
     /**

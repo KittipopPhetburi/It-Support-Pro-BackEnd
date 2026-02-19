@@ -23,7 +23,7 @@ class OtherRequestNotification extends Notification implements ShouldQueue
 
     public function via($notifiable)
     {
-        $channels = [TelegramChannel::class];
+        $channels = [TelegramChannel::class, \App\Channels\OrganizationMailChannel::class];
 
         // Only save to database if the notifiable is a valid model (User)
         if ($notifiable instanceof \Illuminate\Database\Eloquent\Model) {
@@ -31,6 +31,23 @@ class OtherRequestNotification extends Notification implements ShouldQueue
         }
 
         return $channels;
+    }
+
+    public function toMail($notifiable)
+    {
+        $req = $this->otherRequest;
+        $title = $this->getTitle($this->type);
+        
+        return (new \Illuminate\Notifications\Messages\MailMessage)
+            ->subject("[{$title}] #REQ-{$req->id} - {$req->title}")
+            ->greeting("แจ้งเตือนสถานะคำขออื่นๆ")
+            ->line("เลขที่คำขอ: #REQ-{$req->id}")
+            ->line("เรื่อง: {$req->title}")
+            ->line("รายการ: {$req->item_name} (x{$req->quantity} {$req->unit})")
+            ->line("ผู้ขอ: {$req->requester_name}")
+            ->line("สถานะ: {$title}")
+            ->action('ดูรายละเอียด', url('/management/system-settings'))
+            ->line('ขอบคุณที่ใช้บริการ IT Support');
     }
 
     public function toTelegram($notifiable)

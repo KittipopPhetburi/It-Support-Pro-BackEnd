@@ -97,14 +97,16 @@ class IncidentTitleSeeder extends Seeder
         ];
 
         foreach ($titles as $title) {
-            IncidentTitle::create([
-                'title' => $title['title'],
-                'category' => $title['category'],
-                'priority' => $title['priority'],
-                'response_time' => $title['response_time'],
-                'resolution_time' => $title['resolution_time'],
-                'is_active' => true,
-            ]);
+            IncidentTitle::updateOrCreate(
+                ['title' => $title['title']], // Check existing by title
+                [
+                    'category' => $title['category'],
+                    'priority' => $title['priority'],
+                    'response_time' => $title['response_time'],
+                    'resolution_time' => $title['resolution_time'],
+                    'is_active' => true,
+                ]
+            );
         }
 
         $this->command->info('✅ Incident titles seeded successfully');
