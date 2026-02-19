@@ -268,17 +268,27 @@ class IncidentController extends BaseCrudController
         unset($data['requester']);
         unset($data['reported_by']);
         unset($data['branch']);
-        unset($data['department']);
-        
-        // ใส่ค่า category, priority, status กลับเข้าไปเพื่อให้บันทึกลงฐานข้อมูล
+        // Ensure branch_id and department (name) is set
+        if ($request->user()) {
+            if (!isset($data['branch_id'])) {
+                $data['branch_id'] = $request->user()->branch_id;
+            }
+            if (!isset($data['department']) || empty($data['department'])) {
+                // If it's a numeric ID (department_id), we might want the name too
+                if (isset($data['department_id']) && is_numeric($data['department_id'])) {
+                    $dept = \App\Models\Department::find($data['department_id']);
+                    if ($dept) $data['department'] = $dept->name;
+                } elseif ($request->user()->department) {
+                    // Fallback to user's department name
+                    $data['department'] = $request->user()->department->name;
+                }
+            }
+        }
+
+        // Put category, priority, status back into the array (values from frontend)
         if ($displayCategory) $data['category'] = $displayCategory;
         if ($displayPriority) $data['priority'] = $displayPriority;
         if ($displayStatus) $data['status'] = $displayStatus;
-        
-        // Ensure branch_id is set
-        if (!isset($data['branch_id']) && $request->user()) {
-            $data['branch_id'] = $request->user()->branch_id;
-        }
 
         return $data;
     }
@@ -403,7 +413,8 @@ class IncidentController extends BaseCrudController
 
         // Send Notification using Laravel's Notification system
         try {
-            Notification::route(TelegramChannel::class, 'system')
+            \Illuminate\Support\Facades\Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->route(\App\Channels\OrganizationMailChannel::class, 'system')
                 ->notify(new IncidentNotification($model, 'created'));
         } catch (\Exception $e) {
             \Log::error('Failed to send notification: ' . $e->getMessage());

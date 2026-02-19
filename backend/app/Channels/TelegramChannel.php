@@ -22,54 +22,81 @@ class TelegramChannel
         $chatId = null;
         $shouldSend = false;
 
-        // 1. Determine Context & Branch
+        // 1. Determine Context & Candidates
+        $organization = null;
+        $department = null;
         $branch = null;
-        $configKey = null;
-        $orgName = null;
+        $branchName = null;
         $reqType = null;
-        $customBotToken = null;
+        $configKey = null;
 
         if (property_exists($notification, 'incident')) {
-            $branch = $notification->incident->branch;
-            $orgName = $notification->incident->organization ?? ($branch ? $branch->name : null);
+            $incident = $notification->incident;
+            $branch = $incident->branch;
+            $organization = $incident->organization;
+            $department = $incident->department;
+            $branchName = $branch ? $branch->name : null;
             $reqType = 'incident';
             $configKey = 'incident';
         } elseif (property_exists($notification, 'assetRequest')) {
-            $branch = $notification->assetRequest->branch;
-            $orgName = $notification->assetRequest->organization ?? ($branch ? $branch->name : null);
-            $reqType = strtolower($notification->assetRequest->request_type ?? 'asset_request');
+            $assetRequest = $notification->assetRequest;
+            $branch = $assetRequest->branch;
+            $organization = $assetRequest->organization;
+            $department = $assetRequest->department;
+            $branchName = $branch ? $branch->name : null;
+            $reqType = strtolower($assetRequest->request_type ?? 'asset_request');
             $configKey = $reqType;
         } elseif (property_exists($notification, 'otherRequest')) {
-            $branch = $notification->otherRequest->branch;
-            $orgName = $notification->otherRequest->organization ?? ($branch ? $branch->name : null);
-            $reqType = strtolower($notification->otherRequest->request_type ?? 'requisition');
+            $otherRequest = $notification->otherRequest;
+            $branch = $otherRequest->branch;
+            $organization = $otherRequest->organization;
+            $department = $otherRequest->department;
+            $branchName = $branch ? $branch->name : null;
+            $reqType = strtolower($otherRequest->request_type ?? 'requisition');
             $configKey = 'other_request'; 
         }
 
-        file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - Context: Org='$orgName', Type='$reqType'\n", FILE_APPEND);
+        // 2. Build prioritized candidate list
+        // Priority: 1. Organization, 2. Department, 3. Branch
+        $candidates = array_filter(array_unique([
+            $organization,
+            $department,
+            $branchName
+        ]));
 
-        // 2. Check OrganizationNotification (Priority 1 - System Settings UI)
-        if ($orgName && $reqType) {
-             Log::info("TelegramChannel: Checking OrganizationNotification for '{$orgName}' type '{$reqType}'");
-             $orgNotif = \App\Models\OrganizationNotification::where('organization_name', $orgName)
-                            ->where('request_type', $reqType)
-                            ->first();
-             
-             if ($orgNotif && $orgNotif->telegram_enabled && !empty($orgNotif->telegram_chat_id)) {
-                 $chatId = $orgNotif->telegram_chat_id;
-                 $shouldSend = true;
-                 
-                 if (!empty($orgNotif->telegram_token)) {
-                     $customBotToken = $orgNotif->telegram_token;
-                 }
-                 Log::info("TelegramChannel: Using OrganizationNotification settings. ChatID: {$chatId}");
-                 file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - Found Org Config. ChatID: $chatId\n", FILE_APPEND);
-                 
-                 goto send_notification;
-             }
+        file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - Candidates: [" . implode(', ', $candidates) . "], Type: '$reqType'\n", FILE_APPEND);
+
+        // 3. Search for enabled settings among candidates
+        $orgNotif = null;
+        $foundCandidate = null;
+
+        foreach ($candidates as $candidate) {
+            Log::info("TelegramChannel: Checking candidate '{$candidate}' for type '{$reqType}'");
+            $setting = \App\Models\OrganizationNotification::where('organization_name', $candidate)
+                ->where('request_type', $reqType)
+                ->first();
+
+            if ($setting && $setting->telegram_enabled && !empty($setting->telegram_chat_id)) {
+                $orgNotif = $setting;
+                $foundCandidate = $candidate;
+                break;
+            }
         }
 
-        // 3. Fallback: Check Branch Settings (Legacy)
+        if ($orgNotif) {
+            $chatId = $orgNotif->telegram_chat_id;
+            $shouldSend = true;
+            
+            if (!empty($orgNotif->telegram_token)) {
+                $customBotToken = $orgNotif->telegram_token;
+            }
+            Log::info("TelegramChannel: Using settings from candidate '{$foundCandidate}'. ChatID: {$chatId}");
+            file_put_contents(base_path('telegram_debug.log'), date('Y-m-d H:i:s') . " - Found Candidate: $foundCandidate. ChatID: $chatId\n", FILE_APPEND);
+            
+            goto send_notification;
+        }
+
+        // 4. Fallback: Check Branch Settings (Legacy)
         if ($branch && !empty($branch->telegram_chat_id)) {
             Log::info("TelegramChannel Debug: Branch '{$branch->name}' found. Chat ID: {$branch->telegram_chat_id}");
             

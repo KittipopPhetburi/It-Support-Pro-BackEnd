@@ -102,6 +102,7 @@ class OtherRequestController extends BaseCrudController
         // 3. Send Notification
         try {
             Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->route(\App\Channels\OrganizationMailChannel::class, 'system')
                 ->notifyNow(new OtherRequestNotification($otherRequest, 'created'));
         } catch (\Exception $e) {
             \Log::error('Failed to send notification: ' . $e->getMessage());
@@ -127,6 +128,7 @@ class OtherRequestController extends BaseCrudController
         // Send Notification
         try {
             Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->route(\App\Channels\OrganizationMailChannel::class, 'system')
                 ->notifyNow(new OtherRequestNotification($otherRequest, 'approved'));
         } catch (\Exception $e) {
             \Log::error('Failed to send notification: ' . $e->getMessage());
@@ -161,6 +163,7 @@ class OtherRequestController extends BaseCrudController
         // Send Notification
         try {
             Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->route(\App\Channels\OrganizationMailChannel::class, 'system')
                 ->notifyNow(new OtherRequestNotification($otherRequest, 'rejected'));
         } catch (\Exception $e) {
             \Log::error('Failed to send notification: ' . $e->getMessage());
@@ -197,6 +200,7 @@ class OtherRequestController extends BaseCrudController
         // Send Notification
         try {
             Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->route(\App\Channels\OrganizationMailChannel::class, 'system')
                 ->notifyNow(new OtherRequestNotification($otherRequest, 'completed'));
         } catch (\Exception $e) {
             \Log::error('Failed to send notification: ' . $e->getMessage());
@@ -326,6 +330,7 @@ class OtherRequestController extends BaseCrudController
         // Send Notification
         try {
              Notification::route(\App\Channels\TelegramChannel::class, 'system')
+                ->route(\App\Channels\OrganizationMailChannel::class, 'system')
                 ->notifyNow(new OtherRequestNotification($otherRequest, 'received'));
         } catch (\Exception $e) {
              \Log::error('Failed to send notification: ' . $e->getMessage());
