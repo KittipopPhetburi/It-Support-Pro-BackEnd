@@ -528,7 +528,7 @@ class IncidentController extends BaseCrudController
 
             // Update or create MaintenanceHistory record when incident is closed with an asset
             if ($model->asset_id) {
-                \App\Models\MaintenanceHistory::create([
+                $historyData = [
                     'asset_id' => $model->asset_id,
                     'serial_number' => $model->asset_serial_number, // Link specific serial
                     'incident_id' => $model->id,
