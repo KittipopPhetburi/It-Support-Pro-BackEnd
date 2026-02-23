@@ -40,22 +40,32 @@ class PmProjectController extends Controller
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('project_code', 'like', "%{$search}%")
+                $q->where('project_name', 'like', "%{$search}%")
                   ->orWhere('organization', 'like', "%{$search}%");
             });
         }
 
         $projects = $query->orderBy('created_at', 'desc')->get();
 
-        // Calculate stats
-        $stats = [
-            'total' => PmProject::count(),
-            'planning' => PmProject::where('status', 'Planning')->count(),
-            'inProgress' => PmProject::where('status', 'In Progress')->count(),
-            'completed' => PmProject::where('status', 'Completed')->count(),
-            'totalBudget' => PmProject::sum('budget'),
-        ];
+        // Calculate stats safely
+        try {
+            $stats = [
+                'total' => PmProject::count(),
+                'planning' => PmProject::where('status', 'Planning')->count(),
+                'inProgress' => PmProject::where('status', 'In Progress')->count(),
+                'completed' => PmProject::where('status', 'Completed')->count(),
+                'totalBudget' => PmProject::sum('project_value'),
+            ];
+        } catch (\Exception $e) {
+            \Log::error('PM Statistics Error: ' . $e->getMessage());
+            $stats = [
+                'total' => 0,
+                'planning' => 0,
+                'inProgress' => 0,
+                'completed' => 0,
+                'totalBudget' => 0,
+            ];
+        }
 
         return response()->json([
             'data' => $projects,
@@ -66,26 +76,25 @@ class PmProjectController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'project_name' => 'required|string|max:255',
             'organization' => 'nullable|string|max:255',
             'department' => 'nullable|string|max:255',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'budget' => 'required|numeric|min:0',
-            'manager_id' => 'nullable|exists:users,id',
+            'project_value' => 'required|numeric|min:0',
+            'project_manager_id' => 'nullable|exists:users,id',
             'description' => 'nullable|string',
             'status' => 'nullable|in:Planning,In Progress,Completed,Cancelled',
         ]);
 
-        $validated['project_code'] = PmProject::generateProjectCode();
         $validated['status'] = $validated['status'] ?? 'Planning';
 
         // Handle file uploads
         if ($request->hasFile('contract_file')) {
-            $validated['contract_file'] = $request->file('contract_file')->store('pm-projects/contracts', 'public');
+            $validated['contract_file_path'] = $request->file('contract_file')->store('pm-projects/contracts', 'public');
         }
         if ($request->hasFile('tor_file')) {
-            $validated['tor_file'] = $request->file('tor_file')->store('pm-projects/tor', 'public');
+            $validated['tor_file_path'] = $request->file('tor_file')->store('pm-projects/tor', 'public');
         }
 
         $project = PmProject::create($validated);
@@ -104,13 +113,13 @@ class PmProjectController extends Controller
     public function update(Request $request, PmProject $pmProject)
     {
         $validated = $request->validate([
-            'name' => 'nullable|string|max:255',
+            'project_name' => 'nullable|string|max:255',
             'organization' => 'nullable|string|max:255',
             'department' => 'nullable|string|max:255',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date',
-            'budget' => 'nullable|numeric|min:0',
-            'manager_id' => 'nullable|exists:users,id',
+            'project_value' => 'nullable|numeric|min:0',
+            'project_manager_id' => 'nullable|exists:users,id',
             'description' => 'nullable|string',
             'status' => 'nullable|in:Planning,In Progress,Completed,Cancelled',
         ]);
@@ -118,17 +127,17 @@ class PmProjectController extends Controller
         // Handle file uploads
         if ($request->hasFile('contract_file')) {
             // Delete old file if exists
-            if ($pmProject->contract_file) {
-                Storage::disk('public')->delete($pmProject->contract_file);
+            if ($pmProject->contract_file_path) {
+                Storage::disk('public')->delete($pmProject->contract_file_path);
             }
-            $validated['contract_file'] = $request->file('contract_file')->store('pm-projects/contracts', 'public');
+            $validated['contract_file_path'] = $request->file('contract_file')->store('pm-projects/contracts', 'public');
         }
         if ($request->hasFile('tor_file')) {
             // Delete old file if exists
-            if ($pmProject->tor_file) {
-                Storage::disk('public')->delete($pmProject->tor_file);
+            if ($pmProject->tor_file_path) {
+                Storage::disk('public')->delete($pmProject->tor_file_path);
             }
-            $validated['tor_file'] = $request->file('tor_file')->store('pm-projects/tor', 'public');
+            $validated['tor_file_path'] = $request->file('tor_file')->store('pm-projects/tor', 'public');
         }
 
         $pmProject->update($validated);
@@ -142,11 +151,11 @@ class PmProjectController extends Controller
     public function destroy(PmProject $pmProject)
     {
         // Delete associated files
-        if ($pmProject->contract_file) {
-            Storage::disk('public')->delete($pmProject->contract_file);
+        if ($pmProject->contract_file_path) {
+            Storage::disk('public')->delete($pmProject->contract_file_path);
         }
-        if ($pmProject->tor_file) {
-            Storage::disk('public')->delete($pmProject->tor_file);
+        if ($pmProject->tor_file_path) {
+            Storage::disk('public')->delete($pmProject->tor_file_path);
         }
 
         $pmProject->delete();
