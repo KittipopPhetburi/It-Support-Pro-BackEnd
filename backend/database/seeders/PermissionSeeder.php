@@ -16,11 +16,10 @@ class PermissionSeeder extends Seeder
         $menus = [
             // Equipment Management
             ['key' => 'dashboard_equipment', 'name' => 'Dashboard (Equipment)', 'group' => 'Equipment Management', 'sort_order' => 1],
-            ['key' => 'assets', 'name' => 'Asset', 'group' => 'Equipment Management', 'sort_order' => 2],
             ['key' => 'asset_management', 'name' => 'Asset Management', 'group' => 'Equipment Management', 'sort_order' => 3],
             ['key' => 'asset_requests', 'name' => 'Asset Request', 'group' => 'Equipment Management', 'sort_order' => 4],
             ['key' => 'other_requests', 'name' => 'Other Request', 'group' => 'Equipment Management', 'sort_order' => 5],
-            ['key' => 'return_assets', 'name' => 'Return Assets', 'group' => 'assets', 'sort_order' => 6], // Group matches screenshot
+            ['key' => 'returnAssets', 'name' => 'Return Assets', 'group' => 'assets', 'sort_order' => 6], // Group matches screenshot
             
             // Management
             ['key' => 'users', 'name' => 'User', 'group' => 'Management', 'sort_order' => 10],
@@ -66,7 +65,7 @@ class PermissionSeeder extends Seeder
         // Helpdesk / Technician (View & Manage Incidents/Assets but maybe strict on Settings)
         $techRoles = Role::whereIn('name', ['Technician', 'Helpdesk'])->get();
         foreach ($techRoles as $role) {
-            $techMenus = Menu::whereIn('key', ['dashboard_equipment', 'assets', 'asset_requests', 'return_assets', 'incidents'])->get();
+            $techMenus = Menu::whereIn('key', ['dashboard_equipment', 'asset_management', 'asset_requests', 'returnAssets', 'incidents'])->get();
             foreach ($techMenus as $menu) {
                  RoleMenuPermission::updateOrCreate(
                     [
@@ -88,7 +87,7 @@ class PermissionSeeder extends Seeder
         // Purchase (Assets & Requests)
         $purchaseRole = Role::where('name', 'Purchase')->first();
         if ($purchaseRole) {
-             $purchaseMenus = Menu::whereIn('key', ['dashboard_equipment', 'assets', 'asset_management', 'asset_requests'])->get();
+             $purchaseMenus = Menu::whereIn('key', ['dashboard_equipment', 'asset_management', 'asset_requests'])->get();
              foreach ($purchaseMenus as $menu) {
                  RoleMenuPermission::updateOrCreate(
                     [
